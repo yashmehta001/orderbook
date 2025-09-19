@@ -36,6 +36,11 @@ export class UserEntity {
   @Column()
   password: string;
 
+  @Column({
+    default: 0,
+  })
+  balance: number;
+
   @Column(() => AuditInfo, { prefix: false })
   auditInfo: AuditInfo;
 

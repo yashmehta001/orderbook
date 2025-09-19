@@ -1,20 +1,13 @@
+#!/bin/sh
+
 set -e
 
-echo "🚀 Starting application initialization..."
+echo "🚀 Starting application..."
 
-# Wait for database
-echo "⏳ Waiting for database to be ready..."
-until nc -z "$DATABASE_HOST" "$DATABASE_PORT"; do
-    echo "Database not ready, waiting..."
-    sleep 2
-done
-echo "✅ Database is ready!"
+# Run DB migrations (no need to rebuild here)
+echo "🔄 Running migrations..."
+npm run migrations
 
-# Run migrations
-echo "🔄 Running database migrations..."
-npm run typeorm:run-migration
-echo "✅ Migrations completed!"
-
-# Start application  
-echo "🎉 Starting the application..."
+# Start app
+echo "🎉 Starting NestJS..."
 exec npm run start:prod

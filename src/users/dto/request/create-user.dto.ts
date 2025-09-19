@@ -1,4 +1,10 @@
-import { IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotBlank } from '../../../utils/decorators';
 
@@ -40,4 +46,12 @@ export class UserCreateReqDto {
     required: false,
   })
   password: string;
+
+  @IsNumber()
+  @ApiProperty({
+    example: 0,
+    required: false,
+    default: 0,
+  })
+  balance: number;
 }

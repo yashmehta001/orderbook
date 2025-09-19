@@ -1,38 +1,31 @@
 # Stage 1: Build
 FROM node:lts-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Install dependencies including dev dependencies (for Nest CLI)
-COPY package.json package-lock.json ./
-RUN npm install
+# Install dependencies (including dev)
+COPY package*.json ./
+RUN npm ci
 
-# Copy source code and build the application
+# Copy source and build
 COPY . .
 RUN npm run build
 
-# Stage 2: Production Image
+# Stage 2: Production
 FROM node:lts-alpine AS production
 
-# Set working directory
 WORKDIR /app
 
-# Install only production dependencies
-COPY --from=builder /app/package.json /app/package-lock.json ./
-RUN npm install --production
+# Install only prod dependencies
+COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Copy the built application from the builder stage
+# Copy built app and scripts
 COPY --from=builder /app/dist ./dist
-
-# Copy the necessary files (e.g., start script)
 COPY ./start.sh ./
 
-# Expose the app's port
 EXPOSE 3000
 
-# Make sure the start script is executable
 RUN chmod +x ./start.sh
 
-# Use the start script to launch the app
 CMD ["./start.sh"]

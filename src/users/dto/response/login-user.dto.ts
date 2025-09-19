@@ -25,4 +25,10 @@ export class UserResDto {
     example: 'john@doe.com',
   })
   email: string;
+
+  @Expose()
+  @ApiProperty({
+    example: 1000,
+  })
+  balance: number;
 }
