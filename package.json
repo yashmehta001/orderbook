@@ -18,11 +18,11 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli",
-    "typeorm:create-migration": "npm run typeorm -- migration:create ./src/database/migrations/migration",
-    "typeorm:generate-migration": "npm run typeorm -- -d ormconfig.ts migration:generate ./src/database/migrations/migration",
-    "typeorm:run-migration": "npm run typeorm -- -d ormconfig.ts migration:run",
-    "typeorm:revert-migration": "npm run typeorm -- -d ormconfig.ts migration:revert",
+    "typeorm": "ts-node ./node_modules/typeorm/cli",
+    "migrations": "npm run typeorm migration:run -- -d ./src/database/config/orm-config.ts",
+    "typeorm:create-migration": "npm run typeorm -- migration:create ./",
+    "typeorm:generate-migration": "npm run typeorm -- -d ./src/database/config/orm-config.ts migration:generate ./src/database/migrations/migrations",
+    "typeorm:revert-migration": "npm run typeorm -- -d ./src/database/config/orm-config.ts migration:revert",
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/seed.ts"
   },
   "dependencies": {

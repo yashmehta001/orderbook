@@ -1,19 +1,19 @@
-// src/database/config/orm.config.ts
 import { DataSource } from 'typeorm';
-import { validateEnv } from '../../core/config/env.validation';
+import * as dotenv from 'dotenv';
 
-// validate process.env using the same class-validator logic
-const env = validateEnv(process.env);
+// Load environment variables
+dotenv.config();
 
 export default new DataSource({
   type: 'postgres',
-  host: env.DATABASE_HOST,
-  port: env.DATABASE_PORT,
-  username: env.DATABASE_USER,
-  password: env.DATABASE_PASSWORD,
-  database: env.DATABASE_NAME,
+  host: process.env.DATABASE_HOST,
+  port: parseInt(process.env.DATABASE_PORT || '5432', 10),
+  username: process.env.DATABASE_USER,
+  password: process.env.DATABASE_PASSWORD,
+  database: process.env.DATABASE_NAME,
   entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
   migrations: [__dirname + '/../migrations/*{.ts,.js}'],
-  synchronize: false, // keep false in CLI too
-  logging: env.DATABASE_LOGGING,
+  synchronize: false,
+  dropSchema: false,
+  logging: process.env.DATABASE_LOGGING === 'true' || false,
 });

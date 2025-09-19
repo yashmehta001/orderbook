@@ -1,5 +1,4 @@
-
-import { AuditInfo } from 'src/core/entity';
+import { AuditInfo } from '../../core/entity';
 import {
   BeforeInsert,
   Column,

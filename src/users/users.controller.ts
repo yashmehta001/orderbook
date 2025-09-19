@@ -25,7 +25,7 @@ import { Serialize } from '../utils/loaders/SerializeDto';
 import { UserService } from './services/users.service';
 import { AuthType } from '../utils/token/types';
 import { Auth } from '../utils/authentication/decorator';
-import { AuthUser } from 'src/utils/decorators/auth-user.decorator';
+import { AuthUser } from '../utils/decorators';
 
 @ApiTags('User')
 @Controller('user')

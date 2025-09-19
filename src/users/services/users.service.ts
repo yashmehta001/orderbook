@@ -1,4 +1,8 @@
-import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { UserCreateReqDto, UserLoginReqDto, UserProfileReqDto } from '../dto';
 import {
   IUserRepository,
@@ -92,9 +96,9 @@ export class UserService implements IUserService {
         token: `Bearer ${await this.tokenService.token(token)}`,
       };
     } catch (error) {
-        if (error instanceof authFailedException) throw error;
-        this.logger.error(`Login failed due to server error`, error);
-        throw new InternalServerErrorException();
+      if (error instanceof authFailedException) throw error;
+      this.logger.error(`Login failed due to server error`, error);
+      throw new InternalServerErrorException();
     }
   }
 

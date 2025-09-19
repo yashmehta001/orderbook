@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common/decorators';
-import { JwtService as JwtNestService, JwtSignOptions, JwtVerifyOptions } from '@nestjs/jwt';
+import {
+  JwtService as JwtNestService,
+  JwtSignOptions,
+  JwtVerifyOptions,
+} from '@nestjs/jwt';
 import { userType } from '../types/user.types';
 import { ConfigService } from '@nestjs/config';
 
@@ -15,12 +19,18 @@ export class JwtService implements IJwtService {
   constructor(
     private readonly tokenService: JwtNestService,
     private readonly configService: ConfigService,
-  ) { 
-    this.secret = this.configService.get<string>('JWT_SECRET', 'default_secret');
-    this.expiresIn = this.configService.get<string | number>('JWT_ACCESS_TOKEN_TTL', 900);
+  ) {
+    this.secret = this.configService.get<string>(
+      'JWT_SECRET',
+      'default_secret',
+    );
+    this.expiresIn = this.configService.get<string | number>(
+      'JWT_ACCESS_TOKEN_TTL',
+      900,
+    );
   }
 
- async token(data: userType): Promise<string> {
+  async token(data: userType): Promise<string> {
     const options: JwtSignOptions = {
       secret: this.secret,
       expiresIn: this.expiresIn,

@@ -7,7 +7,7 @@ import { UserCreateReqDto } from '../dto';
 export interface IUserRepository {
   save(userEntity: UserCreateReqDto): Promise<UserEntity>;
 
-  getByEmail(email: string): Promise<UserEntity| null>;
+  getByEmail(email: string): Promise<UserEntity | null>;
 
   getById(id: string): Promise<UserEntity | null>;
 }
