@@ -1,13 +1,13 @@
+import { OrderBookEntity } from '../../orderbook/entities/orderbook.entity';
 import { AuditInfo } from '../../core/entity';
 import {
-  BeforeInsert,
   Column,
   Entity,
   Index,
+  OneToMany,
   PrimaryGeneratedColumn,
   Unique,
 } from 'typeorm';
-import { v4 as uuid } from 'uuid';
 
 @Entity({
   name: 'users',
@@ -41,13 +41,9 @@ export class UserEntity {
   })
   funds: number;
 
+  @OneToMany(() => OrderBookEntity, (order) => order.user, { cascade: true })
+  orders: OrderBookEntity[];
+
   @Column(() => AuditInfo, { prefix: false })
   auditInfo: AuditInfo;
-
-  @BeforeInsert()
-  generateId() {
-    if (!this.id) {
-      this.id = uuid();
-    }
-  }
 }

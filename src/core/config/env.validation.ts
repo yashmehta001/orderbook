@@ -8,17 +8,11 @@ import {
   IsBoolean,
   Min,
 } from 'class-validator';
-
-export enum Environment {
-  Development = 'development',
-  Production = 'production',
-  Staging = 'staging',
-  Test = 'test',
-}
+import { EnvironmentEnum } from './constants';
 
 export class EnvConfig {
-  @IsEnum(Environment)
-  NODE_ENV!: Environment;
+  @IsEnum(EnvironmentEnum)
+  NODE_ENV!: EnvironmentEnum;
 
   @Type(() => Number)
   @IsInt()

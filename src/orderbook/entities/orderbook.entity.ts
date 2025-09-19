@@ -1,0 +1,42 @@
+import { UserEntity } from '../../users/entities';
+import { AuditInfo } from '../../core/entity';
+import {
+  BeforeInsert,
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { OrderSideEnum } from '../../core/config';
+
+@Entity({
+  name: 'orderbook',
+})
+export class OrderBookEntity {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({
+    name: 'stock_name',
+  })
+  stockName: string;
+
+  @Column({
+    type: 'varchar',
+  })
+  side: OrderSideEnum;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  price: number;
+
+  @Column({ type: 'int', default: 0 })
+  quantity: number;
+
+  @ManyToOne(() => UserEntity, (user) => user.orders, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_id' })
+  user: UserEntity;
+
+  @Column(() => AuditInfo, { prefix: false })
+  auditInfo: AuditInfo;
+}
