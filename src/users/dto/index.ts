@@ -2,6 +2,7 @@
 export * from './request/create-user.dto';
 export * from './request/login-user.dto';
 export * from './request/profile-user.dto';
+export * from './request/manage-funds.dto';
 
 //Response
 export * from './response/create-user.dto';

@@ -25,7 +25,7 @@ export class UserRepository implements IUserRepository {
   }
 
   async getByEmail(email: string): Promise<UserEntity | null> {
-    return await this.userEntity.findOneOrFail({
+    return await this.userEntity.findOne({
       where: {
         email,
       },
@@ -33,7 +33,7 @@ export class UserRepository implements IUserRepository {
   }
 
   async getById(id: string): Promise<UserEntity | null> {
-    return await this.userEntity.findOneOrFail({
+    return await this.userEntity.findOne({
       where: {
         id,
       },

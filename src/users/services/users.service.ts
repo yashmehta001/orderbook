@@ -1,31 +1,19 @@
-import {
-  Inject,
-  Injectable,
-  InternalServerErrorException,
-} from '@nestjs/common';
-import { UserCreateReqDto, UserLoginReqDto, UserProfileReqDto } from '../dto';
-import {
-  IUserRepository,
-  UserRepository,
-} from '../repository/users.repository';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { UserCreateReqDto, UserLoginReqDto } from '../dto';
+import { UserRepository } from '../repository/users.repository';
 import { TokenService } from '../../utils/token/services';
 import { HashService } from '../../utils/hash/hash.service';
 import { UserType } from '../../utils/token/types/user.enum';
 import {
+  CustomError,
   NotFoundException,
-  authFailedException,
-  emailExistsException,
-} from '../errors';
+  translateTypeOrmError,
+} from '../../core/errors';
 import { LoggerService } from '../../utils/logger/WinstonLogger';
-
-export interface IUserService {
-  createUser(data: UserCreateReqDto): Promise<any>;
-  loginUser(data: UserLoginReqDto): Promise<any>;
-  profile(data: UserProfileReqDto): Promise<any>;
-}
+import { QueryFailedError } from 'typeorm';
 
 @Injectable()
-export class UserService implements IUserService {
+export class UserService {
   constructor(
     @Inject(UserRepository)
     private readonly userRepository: UserRepository,
@@ -58,12 +46,16 @@ export class UserService implements IUserService {
         token: `Bearer ${await this.tokenService.token(token)}`,
       };
     } catch (error) {
-      if (error.code === '23505') {
+      if (error instanceof QueryFailedError) {
         this.logger.warn(
           `${UserService.logInfo} Already Exists! User with email: ${data.email}`,
         );
-        throw new emailExistsException();
+        throw translateTypeOrmError(error);
       }
+      this.logger.warn(
+        `${UserService.logInfo} ${error.message} for email: ${data.email}`,
+      );
+      throw new error();
     }
   }
 
@@ -74,14 +66,20 @@ export class UserService implements IUserService {
     try {
       const user = await this.userRepository.getByEmail(data.email);
       if (!user) {
-        throw new authFailedException();
+        throw new CustomError(
+          `Incorrect Email or Password`,
+          HttpStatus.UNAUTHORIZED,
+        );
       }
       const isEqual = await this.hashService.compare(
         data.password,
         user.password,
       );
       if (!isEqual) {
-        throw new authFailedException();
+        throw new CustomError(
+          `Incorrect Email or Password`,
+          HttpStatus.UNAUTHORIZED,
+        );
       }
       const token = {
         id: user.id,
@@ -96,27 +94,61 @@ export class UserService implements IUserService {
         token: `Bearer ${await this.tokenService.token(token)}`,
       };
     } catch (error) {
-      if (error instanceof authFailedException) throw error;
-      this.logger.error(`Login failed due to server error`, error);
-      throw new InternalServerErrorException();
+      this.logger.warn(
+        `${UserService.logInfo} ${error.message} for email: ${data.email}`,
+      );
+      throw error;
     }
   }
 
-  async profile(data: UserProfileReqDto) {
-    this.logger.info(
-      `${UserService.logInfo} Find User Profile with id: ${data.id}`,
-    );
+  async profile(id: string) {
+    this.logger.info(`${UserService.logInfo} Find User Profile with id: ${id}`);
     try {
-      const user = await this.userRepository.getById(data.id);
+      const user = await this.userRepository.getById(id);
+      if (!user) {
+        this.logger.warn(
+          `${UserService.logInfo} Not Found! User with id: ${id}`,
+        );
+        throw new NotFoundException();
+      }
       this.logger.info(
-        `${UserService.logInfo} Found User Profile with id: ${data.id}`,
+        `${UserService.logInfo} Found User Profile with id: ${id}`,
       );
       return user;
     } catch (error) {
-      this.logger.warn(
-        `${UserService.logInfo} Not Found! User with id: ${data.id}`,
+      this.logger.warn(`${UserService.logInfo} ${error.message} for id: ${id}`);
+      throw error;
+    }
+  }
+
+  async updateFunds(id: string, funds: number) {
+    this.logger.info(
+      `${UserService.logInfo} Update Funds for User with id: ${id}`,
+    );
+    try {
+      const user = await this.userRepository.getById(id);
+      if (!user) {
+        this.logger.warn(
+          `${UserService.logInfo} Not Found! User with id: ${id}`,
+        );
+        throw new NotFoundException();
+      }
+      user.funds += funds;
+      if (user.funds < 0) {
+        this.logger.warn(
+          `${UserService.logInfo} Insufficient Funds! for User with id: ${id}`,
+        );
+        throw new CustomError('Insufficient funds');
+      }
+
+      await this.userRepository.save(user);
+      this.logger.info(
+        `${UserService.logInfo} Updated Funds for User with id: ${id}`,
       );
-      throw new NotFoundException();
+      return user;
+    } catch (error) {
+      this.logger.warn(`${UserService.logInfo} ${error.message} for id: ${id}`);
+      throw error;
     }
   }
 }

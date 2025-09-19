@@ -30,5 +30,5 @@ export class UserResDto {
   @ApiProperty({
     example: 1000,
   })
-  balance: number;
+  funds: number;
 }

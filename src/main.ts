@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { swaggerLoader } from './utils/loaders';
 import { ValidationPipe } from '@nestjs/common';
-import { ExceptionHandlerFilter } from './utils/error/exception-handler.filter';
+import { ExceptionHandlerFilter } from './core/errors/exception-handler.filter';
 import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {

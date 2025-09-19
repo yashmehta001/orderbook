@@ -53,5 +53,5 @@ export class UserCreateReqDto {
     required: false,
     default: 0,
   })
-  balance: number;
+  funds: number;
 }

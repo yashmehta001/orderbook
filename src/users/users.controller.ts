@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Put,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -15,6 +16,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import {
+  ManageFundsReqDto,
   UserCreateReqDto,
   UserLoginReqDto,
   UserLoginResDto,
@@ -85,6 +87,26 @@ export class UsersController {
   @ApiBearerAuth()
   @Get('/profile')
   async profile(@AuthUser() user: UserProfileReqDto) {
-    return this.userService.profile(user);
+    return this.userService.profile(user.id);
+  }
+
+  @Serialize(UserProfileResDto)
+  @ApiResponse({
+    description: 'for more information please check ManageFundsReqDto schema',
+  })
+  @ApiOkResponse({
+    description: 'Funds are updated successfully',
+    type: UserProfileResDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'when user not found',
+  })
+  @ApiBearerAuth()
+  @Put('/update-funds')
+  async updateFunds(
+    @AuthUser() user: UserProfileReqDto,
+    @Body() body: ManageFundsReqDto,
+  ) {
+    return this.userService.updateFunds(user.id, body.funds);
   }
 }

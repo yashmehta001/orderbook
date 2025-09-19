@@ -39,7 +39,7 @@ export class UserEntity {
   @Column({
     default: 0,
   })
-  balance: number;
+  funds: number;
 
   @Column(() => AuditInfo, { prefix: false })
   auditInfo: AuditInfo;

@@ -25,5 +25,5 @@ export class UserProfileResDto {
   @ApiProperty({
     example: 1000,
   })
-  balance: number;
+  funds: number;
 }
