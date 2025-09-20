@@ -1,4 +1,3 @@
-// src/orderbook/dto/responses/get-orderbooks.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 

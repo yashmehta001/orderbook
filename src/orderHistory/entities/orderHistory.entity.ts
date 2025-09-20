@@ -10,9 +10,9 @@ import {
 import { OrderSideEnum } from '../../core/config';
 
 @Entity({
-  name: 'orderbook',
+  name: 'Order_History',
 })
-export class OrderBookEntity {
+export class OrderHistoryEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -35,6 +35,11 @@ export class OrderBookEntity {
   @ManyToOne(() => UserEntity, (user) => user.orders, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: UserEntity;
+    
+  @Column({
+    name: 'transaction_id',
+  })
+  transactionId: string;
 
   @Column(() => AuditInfo, { prefix: false })
   auditInfo: AuditInfo;

@@ -1,4 +1,3 @@
-// src/orderbook/dto/requests/get-orderbooks.dto.ts
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
 import { OrderSideEnum } from '../../../core/config';

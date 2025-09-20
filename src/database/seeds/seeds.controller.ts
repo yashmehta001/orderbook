@@ -1,7 +1,7 @@
 import { Controller, Post, HttpCode, HttpStatus } from '@nestjs/common';
 import { AppSeeder } from './app.seeder';
-import { AuthType } from 'src/utils/token/types';
-import { Auth } from 'src/utils/authentication/decorator';
+import { AuthType } from '../../utils/token/types';
+import { Auth } from '../../utils/authentication/decorator';
 
 @Controller('seed')
 export class SeedsController {

@@ -1,4 +1,3 @@
-// src/orderbook/dto/responses/create-sell-order-res.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { OrderSideEnum } from '../../../core/config';

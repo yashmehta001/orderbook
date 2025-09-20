@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { OrderBookRepository } from '../repository/orderBook.repository';
 import { LoggerService } from '../../utils/logger/WinstonLogger';
 import { CreateBuyOrderReqDto, CreateOrderBookReqDto } from '../dto';
-import { OrderSideEnum } from 'src/core/config';
+import { OrderSideEnum } from '../../core/config';
 import { CreateSellOrderReqDto } from '../dto/requests/sell-order.dto';
 import { OrderBookEntity } from '../entities/orderbook.entity';
 import { UserService } from '../../users/services/users.service';
