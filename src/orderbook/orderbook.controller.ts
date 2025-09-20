@@ -1,7 +1,16 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiCreatedResponse,
   ApiOkResponse,
   ApiResponse,
   ApiTags,
@@ -47,6 +56,8 @@ export class OrderbookController {
     return this.orderBookService.createOrder(user.id, body);
   }
 
+  //Todo: Fix response Dto not getting total amount and sold units
+  //Todo: fix response code in swagger example from 200 to 201
   @Serialize(CreateSellOrderResDto, 'Sell Order created successfully')
   @ApiBearerAuth()
   @ApiResponse({
@@ -74,13 +85,14 @@ export class OrderbookController {
     description:
       'for more information please check CreateBuyOrderResDto schema',
   })
-  @ApiOkResponse({
+  @ApiCreatedResponse({
     description: 'buy Order created successfully',
     type: CreateBuyOrderResDto,
   })
   @ApiBadRequestResponse({
     description: 'Bad Request',
   })
+  @HttpCode(HttpStatus.CREATED)
   @Post('/buy-order')
   async buyOrder(
     @AuthUser() user: UserProfileReqDto,

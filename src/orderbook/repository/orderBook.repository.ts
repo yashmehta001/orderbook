@@ -46,30 +46,36 @@ export class OrderBookRepository {
     return await orderBooks.getRawMany();
   }
 
+  //TODO: take userId as param to exclude user's own orders from listing
   async getOrderList(data?: CreateOrderBookReqDto) {
     const query = this.orderBookEntity
       .createQueryBuilder('order')
-      .orderBy('order.price * order.quantity', 'DESC')
-      .addOrderBy('order.auditInfo.createdAt', 'ASC')
       .leftJoinAndSelect('order.user', 'user');
 
-    if (data?.side && data?.price && data?.stockName) {
+    if (data?.side && data?.price !== undefined && data?.stockName) {
       const oppositeSide =
         data.side === OrderSideEnum.BUY
           ? OrderSideEnum.SELL
           : OrderSideEnum.BUY;
 
-      query.andWhere('order.side = :side', { side: oppositeSide });
-      query.andWhere(
-        data.side === OrderSideEnum.BUY
-          ? 'order.price <= :price'
-          : 'order.price >= :price',
-        { price: data.price },
-      );
-      query.andWhere('order.stock_name = :stockName', {
-        stockName: data.stockName,
-      });
+      query
+        .where('order.side = :side', { side: oppositeSide })
+        .andWhere('order.stock_name = :stockName', {
+          stockName: data.stockName,
+        })
+        .andWhere(
+          data.side === OrderSideEnum.BUY
+            ? 'order.price <= :price'
+            : 'order.price >= :price',
+          { price: data.price },
+        )
+        .orderBy(
+          'order.price',
+          data.side === OrderSideEnum.BUY ? 'ASC' : 'DESC',
+        );
     }
+
+    query.addOrderBy('order.auditInfo.createdAt', 'ASC');
 
     return query.getMany();
   }
