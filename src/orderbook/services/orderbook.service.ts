@@ -177,6 +177,7 @@ export class OrderbookService {
   // ToDo: Refactor and split into smaller methods
   // ToDo: Add transactions
   // ToDo: Add History logic
+  // ToDo: Handle insufficient funds case (gracefully fail) for both userTable and orderBook table
   async buyOrder(userId: string, orderInfo: CreateBuyOrderReqDto) {
     this.logger.info(
       `${OrderbookService.logInfo} Buy order init | userId=${userId} | stock=${orderInfo.stockName} | qty=${orderInfo.quantity} | price=${orderInfo.price}`,
