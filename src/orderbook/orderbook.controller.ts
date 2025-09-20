@@ -1,7 +1,16 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiCreatedResponse,
   ApiOkResponse,
   ApiResponse,
   ApiTags,
@@ -13,7 +22,6 @@ import { UserProfileReqDto } from 'src/users/dto';
 import {
   CreateBuyOrderReqDto,
   CreateBuyOrderResDto,
-  CreateOrderBookReqDto,
   CreateOrderBookResDto,
   CreateSellOrderResDto,
   GetOrderBooksReqDto,
@@ -26,40 +34,20 @@ import { CreateSellOrderReqDto } from './dto/requests/sell-order.dto';
 export class OrderbookController {
   constructor(private readonly orderBookService: OrderbookService) {}
 
-  @Serialize(CreateOrderBookResDto, 'Order created successfully')
-  @ApiBearerAuth()
-  @ApiResponse({
-    description:
-      'for more information please check CreateOrderBookResDto schema',
-  })
-  @ApiOkResponse({
-    description: 'Orders created successfully',
-    type: CreateOrderBookResDto,
-  })
-  @ApiBadRequestResponse({
-    description: 'Bad Request',
-  })
-  @Post('/create-order')
-  async createOrder(
-    @AuthUser() user: UserProfileReqDto,
-    @Body() body: CreateOrderBookReqDto,
-  ) {
-    return this.orderBookService.createOrder(user.id, body);
-  }
-
   @Serialize(CreateSellOrderResDto, 'Sell Order created successfully')
   @ApiBearerAuth()
   @ApiResponse({
     description:
       'for more information please check CreateSellOrderResDto schema',
   })
-  @ApiOkResponse({
+  @ApiCreatedResponse({
     description: 'sell Orders created successfully',
     type: CreateSellOrderResDto,
   })
   @ApiBadRequestResponse({
     description: 'Bad Request',
   })
+  @HttpCode(HttpStatus.CREATED)
   @Post('/sell-order')
   async sellOrder(
     @AuthUser() user: UserProfileReqDto,
@@ -74,13 +62,14 @@ export class OrderbookController {
     description:
       'for more information please check CreateBuyOrderResDto schema',
   })
-  @ApiOkResponse({
+  @ApiCreatedResponse({
     description: 'buy Order created successfully',
     type: CreateBuyOrderResDto,
   })
   @ApiBadRequestResponse({
     description: 'Bad Request',
   })
+  @HttpCode(HttpStatus.CREATED)
   @Post('/buy-order')
   async buyOrder(
     @AuthUser() user: UserProfileReqDto,
