@@ -19,6 +19,17 @@ export class OrderbookService {
 
   static logInfo = 'Service - OrderBook:';
 
+  async createOrder(userId: string, orderInfo: CreateOrderBookReqDto) {
+    this.logger.info(
+      `${OrderbookService.logInfo} Create Order for userId: ${userId}`,
+    );
+    const order = await this.orderBookRepository.save(userId, orderInfo);
+    this.logger.info(
+      `${OrderbookService.logInfo} Created Order for userId: ${userId}`,
+    );
+    return order;
+  }
+
   async getOrderBooks(stockName: string = '', side?: OrderSideEnum) {
     this.logger.info(
       `${OrderbookService.logInfo} Fetching OrderBooks for stockName: ${stockName}`,
