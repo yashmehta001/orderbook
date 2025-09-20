@@ -44,4 +44,4 @@ export const seedOrders = [
     quantity: 100,
     price: 2550.0,
   },
-]
+];

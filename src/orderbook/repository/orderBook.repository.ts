@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { OrderBookEntity } from '../entities/orderbook.entity';
-import { CreateOrderBookDto } from '../dto';
+import { CreateOrderBookReqDto } from '../dto';
 
 @Injectable()
 export class OrderBookRepository {
@@ -11,18 +11,14 @@ export class OrderBookRepository {
     private readonly orderBookRepo: Repository<OrderBookEntity>,
   ) {}
 
- async save(
-  userId: string,
-  orderInfos: CreateOrderBookDto[],
-): Promise<OrderBookEntity[]> {
-  const orderEntities = orderInfos.map((orderInfo) =>
-    this.orderBookRepo.create({
-      ...orderInfo,
+  async save(
+    userId: string,
+    orderInfos: CreateOrderBookReqDto,
+  ): Promise<OrderBookEntity> {
+    const orderEntity = this.orderBookRepo.create({
+      ...orderInfos,
       user: { id: userId },
-    }),
-  );
-
-  return await this.orderBookRepo.save(orderEntities);
-}
-
+    });
+    return await this.orderBookRepo.save(orderEntity);
+  }
 }

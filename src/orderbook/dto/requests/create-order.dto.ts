@@ -4,7 +4,7 @@ import { Type } from 'class-transformer';
 import { IsNotBlank } from '../../../utils/decorators';
 import { OrderSideEnum } from '../../../core/config';
 
-export class CreateOrderBookDto {
+export class CreateOrderBookReqDto {
   @IsNotBlank()
   @MaxLength(255)
   @ApiProperty({

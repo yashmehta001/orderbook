@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { OrderBookRepository } from '../repository/orderBook.repository';
 import { LoggerService } from '../../utils/logger/WinstonLogger';
-import { CreateOrderBookDto } from '../dto';
+import { CreateOrderBookReqDto } from '../dto';
 
 @Injectable()
 export class OrderbookService {
@@ -13,10 +13,7 @@ export class OrderbookService {
   ) {}
 
   static logInfo = 'Service - OrderBook:';
-  async createOrder(
-    userId: string,
-    orderInfo: CreateOrderBookDto[],
-  ): Promise<any> {
+  async createOrder(userId: string, orderInfo: CreateOrderBookReqDto) {
     this.logger.info(
       `${OrderbookService.logInfo} Create Order for userId: ${userId}`,
     );

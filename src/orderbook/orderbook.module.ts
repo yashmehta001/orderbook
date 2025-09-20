@@ -7,9 +7,9 @@ import { OrderBookRepository } from './repository/orderBook.repository';
 import { LoggerModule } from '../utils/logger/logger.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([OrderBookEntity]),LoggerModule],
+  imports: [TypeOrmModule.forFeature([OrderBookEntity]), LoggerModule],
   controllers: [OrderbookController],
-  providers: [OrderbookService,OrderBookRepository],
+  providers: [OrderbookService, OrderBookRepository],
   exports: [OrderbookService],
 })
 export class OrderbookModule {}

@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { LoggerService } from '../../utils/logger/WinstonLogger';
 import { UserService } from '../../users/services/users.service';
-import { OrderSideEnum, seedOrders, seedUser } from '../../core/config';
+import { seedOrders, seedUser } from '../../core/config';
 import { OrderbookService } from '../../orderbook/services/orderbook.service';
 
 @Injectable()
@@ -18,8 +18,10 @@ export class AppSeeder {
     this.logger.info(`${AppSeeder.logInfo} Seeding Initialized`);
 
     // Seed User
-    const {user} = await this.userService.createUser(seedUser);
-    await this.orderbookService.createOrder(user.id, seedOrders);
+    const { user } = await this.userService.createUser(seedUser);
+    seedOrders.forEach(async (seedOrder) => {
+      await this.orderbookService.createOrder(user.id, seedOrder);
+    });
 
     this.logger.info(`${AppSeeder.logInfo} Seeding Completed`);
   }

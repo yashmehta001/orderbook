@@ -7,7 +7,7 @@ import { SeedsController } from './seeds.controller';
 import { OrderbookModule } from '../../orderbook/orderbook.module';
 
 @Module({
-  imports: [LoggerModule, DatabaseProvider, UsersModule,OrderbookModule],
+  imports: [LoggerModule, DatabaseProvider, UsersModule, OrderbookModule],
   providers: [AppSeeder],
   controllers: [SeedsController],
 })
