@@ -5,9 +5,14 @@ import { OrderBookEntity } from './entities/orderbook.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { OrderBookRepository } from './repository/orderBook.repository';
 import { LoggerModule } from '../utils/logger/logger.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([OrderBookEntity]), LoggerModule],
+  imports: [
+    TypeOrmModule.forFeature([OrderBookEntity]),
+    LoggerModule,
+    UsersModule,
+  ],
   controllers: [OrderbookController],
   providers: [OrderbookService, OrderBookRepository],
   exports: [OrderbookService],
