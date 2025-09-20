@@ -1,0 +1,44 @@
+import { IsEnum, IsNumber, IsPositive, MaxLength, Min } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsNotBlank } from '../../../utils/decorators';
+import { OrderSideEnum } from '../../../core/config';
+
+export class CreateOrderBookReqDto {
+  @IsNotBlank()
+  @MaxLength(255)
+  @ApiProperty({
+    example: 'Apple',
+    maxLength: 255,
+    required: false,
+  })
+  stockName?: string;
+
+  @IsEnum(OrderSideEnum)
+  @ApiProperty({
+    example: OrderSideEnum.BUY,
+    enum: OrderSideEnum,
+    required: false,
+  })
+  side?: OrderSideEnum;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  @ApiProperty({
+    example: 100,
+    required: false,
+    minimum: 1,
+  })
+  quantity?: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  @IsPositive()
+  @ApiProperty({
+    example: 150.5,
+    required: false,
+    minimum: 0.01,
+  })
+  price?: number;
+}

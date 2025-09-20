@@ -3,10 +3,18 @@ import { OrderbookController } from './orderbook.controller';
 import { OrderbookService } from './services/orderbook.service';
 import { OrderBookEntity } from './entities/orderbook.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { OrderBookRepository } from './repository/orderBook.repository';
+import { LoggerModule } from '../utils/logger/logger.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([OrderBookEntity])],
+  imports: [
+    TypeOrmModule.forFeature([OrderBookEntity]),
+    LoggerModule,
+    UsersModule,
+  ],
   controllers: [OrderbookController],
-  providers: [OrderbookService],
+  providers: [OrderbookService, OrderBookRepository],
+  exports: [OrderbookService],
 })
 export class OrderbookModule {}
