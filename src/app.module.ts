@@ -20,7 +20,7 @@ import { SeedsModule } from './database/seeds/seeds.module';
     DatabaseModule,
     UsersModule,
     OrderbookModule,
-    ...(process.env.NODE_ENV === 'development' ? [SeedsModule] : [])
+    ...(process.env.NODE_ENV === 'development' ? [SeedsModule] : []),
   ],
 })
 export class AppModule {}

@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class OrderBookTableInit1758316072558 implements MigrationInterface {
-  name = 'Migrations1758316072558';
+  name = 'OrderBookTableInit1758316072558';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
