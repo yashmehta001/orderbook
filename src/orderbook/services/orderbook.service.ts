@@ -18,15 +18,32 @@ export class OrderbookService {
   ) {}
 
   static logInfo = 'Service - OrderBook:';
-  async createOrder(userId: string, orderInfo: CreateOrderBookReqDto) {
+
+  async getOrderBooks(stockName: string = '', side?: OrderSideEnum) {
     this.logger.info(
-      `${OrderbookService.logInfo} Create Order for userId: ${userId}`,
+      `${OrderbookService.logInfo} Fetching OrderBooks for stockName: ${stockName}`,
     );
-    const order = await this.orderBookRepository.save(userId, orderInfo);
+    const rawOrderBooks = await this.orderBookRepository.getOrderBooks(
+      stockName,
+      side,
+    );
+    const grouped = {
+      BUY: [] as { price: number; quantity: number; stockName: string }[],
+      SELL: [] as { price: number; quantity: number; stockName: string }[],
+    };
+
+    rawOrderBooks.forEach((row) => {
+      const side = row.side as OrderSideEnum;
+      grouped[side].push({
+        price: parseFloat(row.price),
+        quantity: parseInt(row.quantity),
+        stockName: row.stockName,
+      });
+    });
     this.logger.info(
-      `${OrderbookService.logInfo} Created Order for userId: ${userId}`,
+      `${OrderbookService.logInfo} Fetched OrderBooks for stockName: ${stockName}`,
     );
-    return order;
+    return grouped;
   }
 
   // ToDo: Refactor and split into smaller methods
@@ -322,32 +339,5 @@ export class OrderbookService {
     for (const [sellerId, deltaFunds] of Object.entries(sellerCredits)) {
       await this.userService.updateFunds(sellerId, deltaFunds);
     }
-  }
-
-  async getOrderBooks(stockName: string = '', side?: OrderSideEnum) {
-    this.logger.info(
-      `${OrderbookService.logInfo} Fetching OrderBooks for stockName: ${stockName}`,
-    );
-    const rawOrderBooks = await this.orderBookRepository.getOrderBooks(
-      stockName,
-      side,
-    );
-    const grouped = {
-      BUY: [] as { price: number; quantity: number; stockName: string }[],
-      SELL: [] as { price: number; quantity: number; stockName: string }[],
-    };
-
-    rawOrderBooks.forEach((row) => {
-      const side = row.side as OrderSideEnum;
-      grouped[side].push({
-        price: parseFloat(row.price),
-        quantity: parseInt(row.quantity),
-        stockName: row.stockName,
-      });
-    });
-    this.logger.info(
-      `${OrderbookService.logInfo} Fetched OrderBooks for stockName: ${stockName}`,
-    );
-    return grouped;
   }
 }
