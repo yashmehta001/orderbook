@@ -22,11 +22,4 @@ export class CreateOrderBookResDto {
   @Expose()
   @ApiProperty({ example: 500 })
   quantity: number;
-
-  @Expose()
-  @ApiProperty({
-    example: '48ede012-aa2c-4942-b4e0-f5cab919dc7a',
-    description: 'User who placed the order',
-  })
-  userId: string;
 }
