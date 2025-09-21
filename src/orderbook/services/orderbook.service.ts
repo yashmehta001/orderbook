@@ -127,113 +127,134 @@ export class OrderbookService {
 
   // ToDo: Add transactions
   async sellOrder(userId: string, orderInfo: CreateSellOrderReqDto) {
-    this.logInit('SELL', userId, orderInfo);
+    try {
+      this.logInit('SELL', userId, orderInfo);
 
-    const existingBuyOrders = await this.orderBookRepository.getOrderList(
-      userId,
-      orderInfo,
-    );
-    const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
-      await this.matchOrders({
-        initiatorId: userId,
+      const existingBuyOrders = await this.orderBookRepository.getOrderList(
+        userId,
         orderInfo,
-        oppositeOrders: existingBuyOrders,
-        isSell: true,
-      });
-    await this.applyOrderBookUpdates(ordersToRemove, ordersToUpdate);
+      );
+      const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
+        await this.matchOrders({
+          initiatorId: userId,
+          orderInfo,
+          oppositeOrders: existingBuyOrders,
+          isSell: true,
+        });
+      await this.applyOrderBookUpdates(ordersToRemove, ordersToUpdate);
 
-    const remainingOrder = await this.saveRemainingOrder(
-      userId,
-      orderInfo,
-      remainingQuantity,
-    );
+      const remainingOrder = await this.saveRemainingOrder(
+        userId,
+        orderInfo,
+        remainingQuantity,
+      );
 
-    await this.processFundsForSell(userId, trades, orderInfo.price);
+      await this.processFundsForSell(userId, trades, orderInfo.price);
 
-    const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
+      const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
 
-    await this.recordOrderHistory(
-      userId,
-      orderInfo,
-      remainingOrder?.id,
-      totalQuantity,
-    );
+      await this.recordOrderHistory(
+        userId,
+        orderInfo,
+        remainingOrder?.id,
+        totalQuantity,
+      );
 
-    this.logComplete('SELL', userId, orderInfo, remainingQuantity);
+      this.logComplete('SELL', userId, orderInfo, remainingQuantity);
 
-    return {
-      totalStockSold: totalQuantity,
-      fundsAdded: totalFunds,
-      trades,
-      remainingOrder,
-    };
+      return {
+        totalStockSold: totalQuantity,
+        fundsAdded: totalFunds,
+        trades,
+        remainingOrder,
+      };
+    } catch (error) {
+      this.logger.warn(
+        `${OrderbookService.logInfo} ${error.message} for userId: ${userId} payload: ${orderInfo}`,
+      );
+      throw error;
+    }
   }
 
   async buyOrder(userId: string, orderInfo: CreateBuyOrderReqDto) {
-    this.logInit('BUY', userId, orderInfo);
+    try {
+      this.logInit('BUY', userId, orderInfo);
 
-    if (
-      !(await this.validateBalance(
+      if (
+        !(await this.validateBalance(
+          userId,
+          -orderInfo.price * orderInfo.quantity,
+        ))
+      ) {
+        throw new CustomError('Insufficient Balance');
+      }
+
+      const existingSellOrders = await this.orderBookRepository.getOrderList(
         userId,
-        -orderInfo.price * orderInfo.quantity,
-      ))
-    ) {
-      throw new CustomError('Insufficient Balance');
-    }
-
-    const existingSellOrders = await this.orderBookRepository.getOrderList(
-      userId,
-      orderInfo,
-    );
-
-    const id = uuid();
-    const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
-      await this.matchOrders({
-        initiatorId: userId,
         orderInfo,
-        oppositeOrders: existingSellOrders,
-        isSell: false,
-        orderId: id,
-      });
+      );
 
-    await this.applyOrderBookUpdates(ordersToRemove, ordersToUpdate);
+      const id = uuid();
+      const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
+        await this.matchOrders({
+          initiatorId: userId,
+          orderInfo,
+          oppositeOrders: existingSellOrders,
+          isSell: false,
+          orderId: id,
+        });
 
-    const remainingOrder = await this.saveRemainingOrder(
-      userId,
-      orderInfo,
-      remainingQuantity,
-      id,
-    );
+      await this.applyOrderBookUpdates(ordersToRemove, ordersToUpdate);
 
-    await this.processFundsForBuy(userId, trades);
+      const remainingOrder = await this.saveRemainingOrder(
+        userId,
+        orderInfo,
+        remainingQuantity,
+        id,
+      );
 
-    const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
+      await this.processFundsForBuy(userId, trades);
 
-    this.logComplete('BUY', userId, orderInfo, remainingQuantity);
+      const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
 
-    return {
-      totalStockBought: totalQuantity,
-      fundsSpent: totalFunds,
-      trades,
-      remainingOrder,
-    };
+      this.logComplete('BUY', userId, orderInfo, remainingQuantity);
+
+      return {
+        totalStockBought: totalQuantity,
+        fundsSpent: totalFunds,
+        trades,
+        remainingOrder,
+      };
+    } catch (error) {
+      this.logger.warn(
+        `${OrderbookService.logInfo} ${error.message} for userId: ${userId} payload: ${orderInfo}`,
+      );
+      throw error;
+    }
   }
 
   async validateBalance(userId: string, updateFunds: number): Promise<boolean> {
-    if (updateFunds > 0) return true;
+    try {
+      if (updateFunds > 0) return true;
 
-    const { funds } = await this.userService.profile(userId);
-    const presentBuyOrders = await this.getOrdersByUserId(
-      userId,
-      OrderSideEnum.BUY,
-    );
+      const { funds } = await this.userService.profile(userId);
+      const presentBuyOrders = await this.getOrdersByUserId(
+        userId,
+        OrderSideEnum.BUY,
+      );
 
-    const pledged = presentBuyOrders.reduce(
-      (sum, o) => sum + (o?.price ?? 0) * (o?.quantity ?? 0) * -1,
-      0,
-    );
+      const pledged = presentBuyOrders.reduce(
+        (sum, o) => sum + (o?.price ?? 0) * (o?.quantity ?? 0) * -1,
+        0,
+      );
 
-    return funds + updateFunds + pledged >= 0;
+      return funds + updateFunds + pledged >= 0;
+    } catch (error) {
+      this.logger.warn(
+        `${OrderbookService.logInfo} ${error.message} for userId: ${userId} payload: ${updateFunds}`,
+      );
+      throw error;
+    }
   }
 
   /* -------------------------------------------------------------------------- */
