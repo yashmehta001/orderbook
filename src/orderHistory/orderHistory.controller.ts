@@ -7,9 +7,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { OrderHistoryService } from './services/orderHistory.service';
-import { Serialize } from 'src/utils/loaders/SerializeDto';
-import { AuthUser } from 'src/utils/decorators';
-import { UserProfileReqDto } from 'src/users/dto';
+import { Serialize } from '../utils/loaders/SerializeDto';
+import { AuthUser } from '../utils/decorators';
+import { UserProfileReqDto } from '../users/dto';
 import { OrderHistoryTransactionResDto } from './dto';
 
 @ApiTags('Order History')

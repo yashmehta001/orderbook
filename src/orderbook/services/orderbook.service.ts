@@ -122,8 +122,6 @@ export class OrderbookService {
       userId,
       orderInfo,
     );
-    console.log(userId);
-    console.log(existingBuyOrders);
 
     // 2️⃣ Match SELL against BUY
     const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
@@ -473,7 +471,6 @@ export class OrderbookService {
       (sum, order) => sum + (order?.price ?? 0) * (order?.quantity ?? 0) * -1,
       0,
     );
-    console.log(funds >= updateFunds + totalAmountPledged);
     return funds + updateFunds + totalAmountPledged >= 0;
   }
 }
