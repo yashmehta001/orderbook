@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { OrderBookRepository } from '../repository/orderBook.repository';
 import { LoggerService } from '../../utils/logger/WinstonLogger';
 import { CreateBuyOrderReqDto, CreateOrderBookReqDto } from '../dto';
@@ -8,6 +8,7 @@ import { OrderBookEntity } from '../entities/orderbook.entity';
 import { UserService } from '../../users/services/users.service';
 import { OrderHistoryService } from '../../orderHistory/services/orderHistory.service';
 import { v4 as uuid } from 'uuid';
+import { CustomError, NotFoundException } from '../../core/errors';
 @Injectable()
 export class OrderbookService {
   constructor(
@@ -15,6 +16,7 @@ export class OrderbookService {
     private readonly orderBookRepository: OrderBookRepository,
 
     private readonly logger: LoggerService,
+    @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
     private readonly orderHistoryService: OrderHistoryService,
   ) {}
@@ -57,6 +59,50 @@ export class OrderbookService {
       `${OrderbookService.logInfo} Fetched OrderBooks for stockName: ${stockName}`,
     );
     return grouped;
+  }
+
+  async getOrdersByUserId(
+    userId: string,
+    side?: OrderSideEnum,
+    stockName?: string,
+  ) {
+    this.logger.info(
+      `${OrderbookService.logInfo} Fetching Orders for userId: ${userId}`,
+    );
+    const orders = await this.orderBookRepository.getOrdersByUserId(
+      userId,
+      stockName,
+      side,
+    );
+    this.logger.info(
+      `${OrderbookService.logInfo} Fetched Orders for userId: ${userId}`,
+    );
+    return orders;
+  }
+
+  async deleteOrder(userId: string, id: string) {
+    try {
+      this.logger.info(
+        `${OrderbookService.logInfo} Deleting Order id: ${id} for userId: ${userId}`,
+      );
+      const order = await this.orderBookRepository.getOrderById(id, userId);
+      if (!order) {
+        this.logger.warn(
+          `${OrderbookService.logInfo} Not Found! Order with id: ${id}`,
+        );
+        throw new NotFoundException();
+      }
+      await this.orderBookRepository.bulkRemoveOrders([id]);
+      this.logger.info(
+        `${OrderbookService.logInfo} Deleted Order id: ${id} for userId: ${userId}`,
+      );
+      return;
+    } catch (error) {
+      this.logger.warn(
+        `${OrderbookService.logInfo} ${error.message} for id: ${id}`,
+      );
+      throw error;
+    }
   }
 
   // ToDo: Refactor and split into smaller methods
@@ -221,13 +267,17 @@ export class OrderbookService {
   // 🔹 Core logic for BUY orders
   // ToDo: Refactor and split into smaller methods
   // ToDo: Add transactions
-  // ToDo: Add History logic
-  // ToDo: Handle insufficient funds case (gracefully fail) for both userTable and orderBook table
   async buyOrder(userId: string, orderInfo: CreateBuyOrderReqDto) {
     this.logger.info(
       `${OrderbookService.logInfo} Buy order init | userId=${userId} | stock=${orderInfo.stockName} | qty=${orderInfo.quantity} | price=${orderInfo.price}`,
     );
-
+    if (
+      !(await this.validateBalance(
+        userId,
+        orderInfo.price * orderInfo.quantity * -1,
+      ))
+    )
+      throw new CustomError('Insufficient Balance');
     // 1️⃣ Get all eligible SELL orders (lowest price first)
     const existingSellOrders =
       await this.orderBookRepository.getOrderList(orderInfo);
@@ -396,5 +446,22 @@ export class OrderbookService {
     for (const [sellerId, deltaFunds] of Object.entries(sellerCredits)) {
       await this.userService.updateFunds(sellerId, deltaFunds);
     }
+  }
+
+  async validateBalance(userId: string, updateFunds: number): Promise<boolean> {
+    if (updateFunds > 0) return true;
+    const { funds } = await this.userService.profile(userId);
+
+    const presentBuyOrders = await this.getOrdersByUserId(
+      userId,
+      OrderSideEnum.BUY,
+    );
+
+    const totalAmountPledged = presentBuyOrders.reduce(
+      (sum, order) => sum + (order?.price ?? 0) * (order?.quantity ?? 0) * -1,
+      0,
+    );
+    console.log(funds >= updateFunds + totalAmountPledged);
+    return funds + updateFunds + totalAmountPledged >= 0;
   }
 }

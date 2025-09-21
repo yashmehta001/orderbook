@@ -7,3 +7,4 @@ export * from './response/get-orderbook.dto';
 export * from './response/create-order.dto';
 export * from './response/sell-order.dto';
 export * from './response/buy-order.dto';
+export * from './response/get-userOrderBook.dto';
