@@ -113,158 +113,274 @@ export class OrderbookService {
   // ToDo: Refactor and split into smaller methods
   // ToDo: Add transactions
   async sellOrder(userId: string, orderInfo: CreateSellOrderReqDto) {
-    this.logger.info(
-      `${OrderbookService.logInfo} Sell order init | userId=${userId} | stock=${orderInfo.stockName} | qty=${orderInfo.quantity} | price=${orderInfo.price}`,
-    );
+    this.logInit('SELL', userId, orderInfo);
 
-    // 1️⃣ Get all eligible BUY orders in one query
     const existingBuyOrders = await this.orderBookRepository.getOrderList(
       userId,
       orderInfo,
     );
-
-    // 2️⃣ Match SELL against BUY
     const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
-      await this.matchSellWithBuyOrders(userId, orderInfo, existingBuyOrders);
-
-    // 3️⃣ Bulk DB writes (orders cleanup)
-    if (ordersToRemove.length > 0) {
-      await this.orderBookRepository.bulkRemoveOrders(ordersToRemove);
-    }
-    if (ordersToUpdate.length > 0) {
-      await this.orderBookRepository.bulkUpdateQuantities(ordersToUpdate);
-    }
-
-    // 4️⃣ Save remaining SELL order (if not fully matched)
-    let remainingOrder: OrderBookEntity | null = null;
-
-    if (remainingQuantity > 0) {
-      remainingOrder = await this.orderBookRepository.save(userId, {
-        ...orderInfo,
-        quantity: remainingQuantity,
+      await this.matchOrders({
+        initiatorId: userId,
+        orderInfo,
+        oppositeOrders: existingBuyOrders,
+        isSell: true,
       });
-    }
+    await this.applyOrderBookUpdates(ordersToRemove, ordersToUpdate);
 
-    // 5️⃣ Process funds movement (buyer loses, seller gains)
-    await this.processFunds(userId, trades, orderInfo.price);
-
-    this.logger.info(
-      `${OrderbookService.logInfo} Sell order complete | filled=${
-        orderInfo.quantity - remainingQuantity
-      } | remaining=${remainingQuantity}`,
+    const remainingOrder = await this.saveRemainingOrder(
+      userId,
+      orderInfo,
+      remainingQuantity,
     );
-    const totalStockSold = trades.reduce((sum, t) => sum + t.quantity, 0);
-    const fundsAdded = trades.reduce((sum, t) => sum + t.quantity * t.price, 0);
-    await this.orderHistoryService.createOrderHistory({
-      id: remainingOrder?.id ?? uuid(),
-      ...orderInfo,
-      user: { id: userId },
-      quantity: totalStockSold,
-    });
+
+    await this.processFundsForSell(userId, trades, orderInfo.price);
+
+    const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
+
+    await this.recordOrderHistory(
+      userId,
+      orderInfo,
+      remainingOrder?.id,
+      totalQuantity,
+    );
+
+    this.logComplete('SELL', userId, orderInfo, remainingQuantity);
+
     return {
-      totalStockSold,
-      fundsAdded,
+      totalStockSold: totalQuantity,
+      fundsAdded: totalFunds,
       trades,
       remainingOrder,
     };
   }
 
-  /**
-   * 🔹 Core matching logic
-   */
-  private async matchSellWithBuyOrders(
-    sellerId: string,
-    orderInfo: CreateSellOrderReqDto,
-    buyOrders: OrderBookEntity[],
-  ) {
+  async buyOrder(userId: string, orderInfo: CreateBuyOrderReqDto) {
+    this.logInit('BUY', userId, orderInfo);
+
+    if (
+      !(await this.validateBalance(
+        userId,
+        -orderInfo.price * orderInfo.quantity,
+      ))
+    ) {
+      throw new CustomError('Insufficient Balance');
+    }
+
+    const existingSellOrders = await this.orderBookRepository.getOrderList(
+      userId,
+      orderInfo,
+    );
+
+    const id = uuid();
+    const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
+      await this.matchOrders({
+        initiatorId: userId,
+        orderInfo,
+        oppositeOrders: existingSellOrders,
+        isSell: false,
+        orderId: id,
+      });
+
+    await this.applyOrderBookUpdates(ordersToRemove, ordersToUpdate);
+
+    const remainingOrder = await this.saveRemainingOrder(
+      userId,
+      orderInfo,
+      remainingQuantity,
+      id,
+    );
+
+    await this.processFundsForBuy(userId, trades);
+
+    const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
+
+    this.logComplete('BUY', userId, orderInfo, remainingQuantity);
+
+    return {
+      totalStockBought: totalQuantity,
+      fundsSpent: totalFunds,
+      trades,
+      remainingOrder,
+    };
+  }
+
+  async validateBalance(userId: string, updateFunds: number): Promise<boolean> {
+    if (updateFunds > 0) return true;
+
+    const { funds } = await this.userService.profile(userId);
+    const presentBuyOrders = await this.getOrdersByUserId(
+      userId,
+      OrderSideEnum.BUY,
+    );
+
+    const pledged = presentBuyOrders.reduce(
+      (sum, o) => sum + (o?.price ?? 0) * (o?.quantity ?? 0) * -1,
+      0,
+    );
+
+    return funds + updateFunds + pledged >= 0;
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /*                              PRIVATE HELPERS                               */
+  /* -------------------------------------------------------------------------- */
+
+  private async matchOrders(params: {
+    initiatorId: string;
+    orderInfo: CreateBuyOrderReqDto | CreateSellOrderReqDto;
+    oppositeOrders: OrderBookEntity[];
+    isSell: boolean;
+    orderId?: string;
+  }) {
+    const { initiatorId, orderInfo, oppositeOrders, isSell, orderId } = params;
     let remainingQuantity = orderInfo.quantity;
     const trades: any[] = [];
     const ordersToRemove: string[] = [];
     const ordersToUpdate: { id: string; quantity: number }[] = [];
 
-    for (const buyOrder of buyOrders) {
+    for (const opposite of oppositeOrders) {
       if (remainingQuantity <= 0) break;
 
-      const availableQty = buyOrder.quantity;
+      const availableQty = opposite.quantity;
+      const tradeQty = Math.min(remainingQuantity, availableQty);
+
+      const trade = isSell
+        ? this.buildSellTrade(opposite, initiatorId, orderInfo, tradeQty)
+        : this.buildBuyTrade(
+            opposite,
+            initiatorId,
+            orderInfo,
+            tradeQty,
+            orderId!,
+          );
+
+      trades.push(trade);
+
+      await this.recordTradeHistory(
+        isSell,
+        initiatorId,
+        opposite,
+        orderInfo,
+        tradeQty,
+        orderId,
+      );
 
       if (availableQty <= remainingQuantity) {
-        trades.push(
-          this.buildTrade(
-            buyOrder.id,
-            buyOrder?.user?.id,
-            sellerId,
-            orderInfo,
-            availableQty,
-          ),
-        );
-        await this.orderHistoryService.createOrderHistory({
-          ...buyOrder,
-          price: orderInfo.price,
-        });
-        remainingQuantity -= availableQty;
-        ordersToRemove.push(buyOrder.id);
+        ordersToRemove.push(opposite.id);
       } else {
-        // ✅ Partially fill BUY order
-        trades.push(
-          this.buildTrade(
-            buyOrder.id,
-            buyOrder?.user?.id,
-            sellerId,
-            orderInfo,
-            remainingQuantity,
-          ),
-        );
-        await this.orderHistoryService.createOrderHistory({
-          ...buyOrder,
-          price: orderInfo.price,
-          quantity: remainingQuantity,
-        });
         ordersToUpdate.push({
-          id: buyOrder.id,
-          quantity: availableQty - remainingQuantity,
+          id: opposite.id,
+          quantity: availableQty - tradeQty,
         });
-        remainingQuantity = 0;
       }
+
+      remainingQuantity -= tradeQty;
     }
 
     return { trades, ordersToRemove, ordersToUpdate, remainingQuantity };
   }
 
-  /**
-   * 🔹 Build trade record
-   */
-  private buildTrade(
-    buyOrderId: string,
-    buyerId: string,
+  private buildSellTrade(
+    opposite: OrderBookEntity,
     sellerId: string,
     orderInfo: CreateSellOrderReqDto,
-    quantity: number,
+    qty: number,
   ) {
     return {
-      buyOrderId,
-      buyerId,
+      buyOrderId: opposite.id,
+      buyerId: opposite?.user?.id,
       sellUserId: sellerId,
       stockName: orderInfo.stockName,
       price: orderInfo.price,
-      quantity,
+      quantity: qty,
     };
   }
 
-  /**
-   * 🔹 Funds handling (atomic updates for buyers + seller)
-   */
-  private async processFunds(sellerId: string, trades: any[], price: number) {
-    const sellerCredit = trades.reduce((sum, t) => sum + t.quantity * price, 0);
+  private buildBuyTrade(
+    opposite: OrderBookEntity,
+    buyerId: string,
+    orderInfo: CreateBuyOrderReqDto,
+    qty: number,
+    orderId: string,
+  ) {
+    return {
+      buyUserId: buyerId,
+      sellOrderId: opposite.id,
+      sellerId: opposite?.user?.id,
+      stockName: orderInfo.stockName,
+      price: opposite.price,
+      quantity: qty,
+      id: orderId,
+    };
+  }
 
-    // 1️⃣ Credit SELLER
+  private async recordTradeHistory(
+    isSell: boolean,
+    initiatorId: string,
+    opposite: OrderBookEntity,
+    orderInfo: CreateBuyOrderReqDto | CreateSellOrderReqDto,
+    quantity: number,
+    orderId?: string,
+  ) {
+    if (quantity<=0) return 
+    if (isSell) {
+      await this.orderHistoryService.createOrderHistory({
+        ...opposite,
+        price: orderInfo.price,
+        quantity,
+      });
+    } else {
+      await this.orderHistoryService.createOrderHistory({
+        ...opposite,
+        quantity,
+      });
+      await this.orderHistoryService.createOrderHistory({
+        ...orderInfo,
+        user: { id: initiatorId },
+        id: orderId?? uuid(),
+        quantity,
+        price: opposite.price,
+      });
+    }
+  }
+
+  private async applyOrderBookUpdates(
+    remove: string[],
+    update: { id: string; quantity: number }[],
+  ) {
+    if (remove.length > 0)
+      await this.orderBookRepository.bulkRemoveOrders(remove);
+    if (update.length > 0)
+      await this.orderBookRepository.bulkUpdateQuantities(update);
+  }
+
+  private async saveRemainingOrder(
+    userId: string,
+    orderInfo: CreateBuyOrderReqDto | CreateSellOrderReqDto,
+    remainingQuantity: number,
+    id?: string,
+  ) {
+    if (remainingQuantity <= 0) return null;
+    return this.orderBookRepository.save(
+      userId,
+      { ...orderInfo, quantity: remainingQuantity },
+      id,
+    );
+  }
+
+  private async processFundsForSell(
+    sellerId: string,
+    trades: any[],
+    price: number,
+  ) {
+    const sellerCredit = trades.reduce((sum, t) => sum + t.quantity * price, 0);
     await this.userService.updateFunds(sellerId, sellerCredit);
 
-    // 2️⃣ Debit BUYERS (group by buyerId for bulk update)
     const buyerDebits: Record<string, number> = {};
-    for (const trade of trades) {
-      const totalCost = trade.quantity * trade.price;
-      buyerDebits[trade.buyerId] =
-        (buyerDebits[trade.buyerId] || 0) - totalCost;
+    for (const { buyerId, quantity, price: tradePrice } of trades) {
+      buyerDebits[buyerId] =
+        (buyerDebits[buyerId] || 0) - quantity * tradePrice;
     }
 
     for (const [buyerId, deltaFunds] of Object.entries(buyerDebits)) {
@@ -272,204 +388,59 @@ export class OrderbookService {
     }
   }
 
-  // 🔹 Core logic for BUY orders
-  // ToDo: Refactor and split into smaller methods
-  // ToDo: Add transactions
-  async buyOrder(userId: string, orderInfo: CreateBuyOrderReqDto) {
-    this.logger.info(
-      `${OrderbookService.logInfo} Buy order init | userId=${userId} | stock=${orderInfo.stockName} | qty=${orderInfo.quantity} | price=${orderInfo.price}`,
-    );
-    if (
-      !(await this.validateBalance(
-        userId,
-        orderInfo.price * orderInfo.quantity * -1,
-      ))
-    )
-      throw new CustomError('Insufficient Balance');
-    // 1️⃣ Get all eligible SELL orders (lowest price first)
-    const existingSellOrders = await this.orderBookRepository.getOrderList(
-      userId,
-      orderInfo,
-    );
-    const id = uuid();
-    // 2️⃣ Match BUY against SELL
-    const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
-      await this.matchBuyWithSellOrders(
-        userId,
-        orderInfo,
-        existingSellOrders,
-        id,
-      );
-
-    // 3️⃣ Bulk DB writes (orders cleanup)
-    if (ordersToRemove.length > 0) {
-      await this.orderBookRepository.bulkRemoveOrders(ordersToRemove);
-    }
-    if (ordersToUpdate.length > 0) {
-      await this.orderBookRepository.bulkUpdateQuantities(ordersToUpdate);
-    }
-
-    // 4️⃣ Save remaining BUY order (if not fully matched)
-    let remainingOrder: OrderBookEntity | null = null;
-    if (remainingQuantity > 0) {
-      remainingOrder = await this.orderBookRepository.save(
-        userId,
-        {
-          ...orderInfo,
-          quantity: remainingQuantity,
-        },
-        id,
-      );
-    }
-
-    // 5️⃣ Process funds movement (buyer pays, seller receives)
-    await this.processFundsForBuy(userId, trades);
-
-    this.logger.info(
-      `${OrderbookService.logInfo} Buy order complete | filled=${
-        orderInfo.quantity - remainingQuantity
-      } | remaining=${remainingQuantity}`,
-    );
-    const totalStockBought = trades.reduce((sum, t) => sum + t.quantity, 0);
-    const fundsSpent = trades.reduce((sum, t) => sum + t.quantity * t.price, 0);
-    return {
-      totalStockBought,
-      fundsSpent,
-      trades,
-      remainingOrder,
-    };
-  }
-
-  /**
-   * 🔹 Match BUY orders with SELL orders
-   */
-  private async matchBuyWithSellOrders(
-    buyerId: string,
-    orderInfo: CreateBuyOrderReqDto,
-    sellOrders: OrderBookEntity[],
-    id: string,
-  ) {
-    let remainingQuantity = orderInfo.quantity;
-    const trades: any[] = [];
-    const ordersToRemove: string[] = [];
-    const ordersToUpdate: { id: string; quantity: number }[] = [];
-
-    for (const sellOrder of sellOrders) {
-      if (remainingQuantity <= 0) break;
-
-      if (sellOrder.price > orderInfo.price) break;
-
-      const availableQty = sellOrder.quantity;
-
-      if (availableQty <= remainingQuantity) {
-        trades.push(
-          this.buildTradeForBuy(
-            buyerId,
-            sellOrder.id,
-            sellOrder?.user?.id,
-            sellOrder.stockName,
-            sellOrder.price,
-            availableQty,
-          ),
-        );
-        remainingQuantity -= availableQty;
-        ordersToRemove.push(sellOrder.id);
-        await this.orderHistoryService.createOrderHistory(sellOrder);
-        await this.orderHistoryService.createOrderHistory({
-          ...orderInfo,
-          user: { id: buyerId },
-          id,
-          quantity: availableQty,
-          price: sellOrder.price,
-        });
-      } else {
-        trades.push(
-          this.buildTradeForBuy(
-            buyerId,
-            sellOrder.id,
-            sellOrder?.user?.id,
-            sellOrder.stockName,
-            sellOrder.price,
-            remainingQuantity,
-          ),
-        );
-        await this.orderHistoryService.createOrderHistory({
-          ...sellOrder,
-          quantity: remainingQuantity,
-        });
-        await this.orderHistoryService.createOrderHistory({
-          ...orderInfo,
-          user: { id: buyerId },
-          id,
-          quantity: remainingQuantity,
-          price: sellOrder.price,
-        });
-        ordersToUpdate.push({
-          id: sellOrder.id,
-          quantity: availableQty - remainingQuantity,
-        });
-        remainingQuantity = 0;
-      }
-    }
-
-    return { trades, ordersToRemove, ordersToUpdate, remainingQuantity };
-  }
-
-  private buildTradeForBuy(
-    buyerId: string,
-    sellOrderId: string,
-    sellerId: string,
-    stockName: string,
-    price: number,
-    quantity: number,
-  ) {
-    return {
-      buyUserId: buyerId,
-      sellOrderId,
-      sellerId,
-      stockName,
-      price,
-      quantity,
-    };
-  }
-
-  /**
-   * 🔹 Handle funds for BUY order trades
-   * Buyer pays, sellers get credited
-   */
   private async processFundsForBuy(buyerId: string, trades: any[]) {
     const sellerCredits: Record<string, number> = {};
     let buyerDebit = 0;
 
-    // 1️⃣ Aggregate buyer debit & seller credits
     for (const { sellerId, quantity, price } of trades) {
-      const totalCost = quantity * price;
-      buyerDebit -= totalCost;
-      sellerCredits[sellerId] = (sellerCredits[sellerId] || 0) + totalCost;
+      const total = quantity * price;
+      buyerDebit -= total;
+      sellerCredits[sellerId] = (sellerCredits[sellerId] || 0) + total;
     }
 
-    // 2️⃣ Update buyer funds
     await this.userService.updateFunds(buyerId, buyerDebit);
 
-    // 3️⃣ Update seller funds
-    for (const [sellerId, deltaFunds] of Object.entries(sellerCredits)) {
-      await this.userService.updateFunds(sellerId, deltaFunds);
+    for (const [sellerId, delta] of Object.entries(sellerCredits)) {
+      await this.userService.updateFunds(sellerId, delta);
     }
   }
 
-  async validateBalance(userId: string, updateFunds: number): Promise<boolean> {
-    if (updateFunds > 0) return true;
-    const { funds } = await this.userService.profile(userId);
+  private async recordOrderHistory(
+    userId: string,
+    orderInfo: CreateSellOrderReqDto,
+    orderId: string | undefined,
+    totalQuantity: number,
+  ) {
+    if (totalQuantity<=0) return 
+    await this.orderHistoryService.createOrderHistory({
+      id: orderId ?? uuid(),
+      ...orderInfo,
+      user: { id: userId },
+      quantity: totalQuantity,
+    });
+  }
 
-    const presentBuyOrders = await this.getOrdersByUserId(
-      userId,
-      OrderSideEnum.BUY,
-    );
+  private summarizeTrades(trades: any[]) {
+    return {
+      totalQuantity: trades.reduce((sum, t) => sum + t.quantity, 0),
+      totalFunds: trades.reduce((sum, t) => sum + t.quantity * t.price, 0),
+    };
+  }
 
-    const totalAmountPledged = presentBuyOrders.reduce(
-      (sum, order) => sum + (order?.price ?? 0) * (order?.quantity ?? 0) * -1,
-      0,
+  private logInit(type: 'BUY' | 'SELL', userId: string, info: any) {
+    this.logger.info(
+      `${OrderbookService.logInfo} ${type} order init | userId=${userId} | stock=${info.stockName} | qty=${info.quantity} | price=${info.price}`,
     );
-    return funds + updateFunds + totalAmountPledged >= 0;
+  }
+
+  private logComplete(
+    type: 'BUY' | 'SELL',
+    userId: string,
+    info: any,
+    remaining: number,
+  ) {
+    this.logger.info(
+      `${OrderbookService.logInfo} ${type} order complete | userId=${userId} | filled=${info.quantity - remaining} | remaining=${remaining}`,
+    );
   }
 }
