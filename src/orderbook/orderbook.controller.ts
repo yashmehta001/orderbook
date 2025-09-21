@@ -26,6 +26,7 @@ import {
   CreateSellOrderResDto,
   GetOrderBooksReqDto,
   GetOrderBooksResDto,
+  GetUserOrderBookResDto,
 } from './dto';
 import { CreateSellOrderReqDto } from './dto/requests/sell-order.dto';
 
@@ -78,12 +79,36 @@ export class OrderbookController {
     return this.orderBookService.buyOrder(user.id, body);
   }
 
-  @Get()
+  @Get('/')
+  @ApiBearerAuth()
+  @Serialize(GetUserOrderBookResDto)
+  @ApiResponse({
+    description:
+      'for more information please check GetUserOrderBookResDto schema',
+  })
+  @ApiOkResponse({
+    description: 'User order book by stock and side',
+    type: GetUserOrderBookResDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Bad Request',
+  })
+  async getUserOrderBooks(
+    @AuthUser() user: UserProfileReqDto,
+    @Query() query: GetOrderBooksReqDto,
+  ) {
+    return this.orderBookService.getOrdersByUserId(
+      user.id,
+      query.stockName,
+      query.side,
+    );
+  }
+
+  @Get('/order-books')
   @ApiBearerAuth()
   @Serialize(GetOrderBooksResDto)
   @ApiResponse({
-    description:
-      'for more information please check CreateOrderBookResDto schema',
+    description: 'for more information please check GetOrderBooksResDto schema',
   })
   @ApiOkResponse({
     description: 'Aggregated order book by stock and side',

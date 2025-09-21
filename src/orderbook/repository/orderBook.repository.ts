@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { OrderBookEntity } from '../entities/orderbook.entity';
 import { CreateOrderBookReqDto } from '../dto';
 import { OrderSideEnum } from '../../core/config';
+import { get } from 'http';
 @Injectable()
 export class OrderBookRepository {
   constructor(
@@ -46,7 +47,28 @@ export class OrderBookRepository {
 
     return await orderBooks.getRawMany();
   }
+  async getOrderById(id: string) {
+    return this.orderBookEntity.findOne({ where: { id } });
+  }
+  async getOrdersByUserId(
+    userId: string,
+    stockName?: string,
+    side?: OrderSideEnum,
+  ) {
+    const orders = this.orderBookEntity
+      .createQueryBuilder('order')
+      .leftJoin('order.user', 'user')
+      .where('user.id = :userId', { userId })
+      .orderBy('side')
+      .orderBy('order.auditInfo.createdAt', 'DESC');
 
+    if (stockName)
+      orders.andWhere('order.stock_name = :stockName', { stockName });
+
+    if (side) orders.andWhere('order.side = :side', { side });
+
+    return orders.getMany();
+  }
   //TODO: take userId as param to exclude user's own orders from listing
   async getOrderList(data?: CreateOrderBookReqDto) {
     const query = this.orderBookEntity
@@ -91,8 +113,6 @@ export class OrderBookRepository {
   ): Promise<void> {
     if (updates.length === 0) return;
 
-    // For now, do sequential updates (still fewer calls than loop-in-service)
-    // 🚀 Can be optimized to a single CASE WHEN update query if needed
     const promises = updates.map(({ id, quantity }) =>
       this.orderBookEntity.update(id, { quantity }),
     );

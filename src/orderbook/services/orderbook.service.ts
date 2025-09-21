@@ -59,6 +59,25 @@ export class OrderbookService {
     return grouped;
   }
 
+  async getOrdersByUserId(
+    userId: string,
+    stockName?: string,
+    side?: OrderSideEnum,
+  ) {
+    this.logger.info(
+      `${OrderbookService.logInfo} Fetching Orders for userId: ${userId}`,
+    );
+    const orders = await this.orderBookRepository.getOrdersByUserId(
+      userId,
+      stockName,
+      side,
+    );
+    this.logger.info(
+      `${OrderbookService.logInfo} Fetched Orders for userId: ${userId}`,
+    );
+    return orders;
+  }
+
   // ToDo: Refactor and split into smaller methods
   // ToDo: Add transactions
   async sellOrder(userId: string, orderInfo: CreateSellOrderReqDto) {
@@ -221,7 +240,6 @@ export class OrderbookService {
   // 🔹 Core logic for BUY orders
   // ToDo: Refactor and split into smaller methods
   // ToDo: Add transactions
-  // ToDo: Add History logic
   // ToDo: Handle insufficient funds case (gracefully fail) for both userTable and orderBook table
   async buyOrder(userId: string, orderInfo: CreateBuyOrderReqDto) {
     this.logger.info(
