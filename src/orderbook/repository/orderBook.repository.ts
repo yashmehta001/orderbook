@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { OrderBookEntity } from '../entities/orderbook.entity';
 import { CreateOrderBookReqDto } from '../dto';
 import { OrderSideEnum } from '../../core/config';
-import { v4 as uuid } from 'uuid';
 @Injectable()
 export class OrderBookRepository {
   constructor(
