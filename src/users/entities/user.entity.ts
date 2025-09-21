@@ -45,7 +45,9 @@ export class UserEntity {
   @OneToMany(() => OrderBookEntity, (order) => order.user, { cascade: true })
   orders: OrderBookEntity[];
 
-  @OneToMany(() => OrderHistoryEntity, (orderHistory) => orderHistory.user, { cascade: true })
+  @OneToMany(() => OrderHistoryEntity, (orderHistory) => orderHistory.user, {
+    cascade: true,
+  })
   orderHistory: OrderBookEntity[];
 
   @Column(() => AuditInfo, { prefix: false })

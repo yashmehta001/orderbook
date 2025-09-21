@@ -49,7 +49,7 @@ export class RemainingOrderDto {
 export class CreateSellOrderResDto {
   @Expose()
   @ApiProperty({ example: 280 })
-  totalAmountSold: number;
+  totalStockSold: number;
 
   @Expose()
   @ApiProperty({ example: 42140 })

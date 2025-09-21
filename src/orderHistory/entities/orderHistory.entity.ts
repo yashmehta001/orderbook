@@ -35,7 +35,7 @@ export class OrderHistoryEntity {
   @ManyToOne(() => UserEntity, (user) => user.orders, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: UserEntity;
-    
+
   @Column({
     name: 'transaction_id',
   })

@@ -6,7 +6,8 @@ import { OrderSideEnum } from '../../core/config';
 import { CreateSellOrderReqDto } from '../dto/requests/sell-order.dto';
 import { OrderBookEntity } from '../entities/orderbook.entity';
 import { UserService } from '../../users/services/users.service';
-
+import { OrderHistoryService } from '../../orderHistory/services/orderHistory.service';
+import { v4 as uuid } from 'uuid';
 @Injectable()
 export class OrderbookService {
   constructor(
@@ -15,6 +16,7 @@ export class OrderbookService {
 
     private readonly logger: LoggerService,
     private readonly userService: UserService,
+    private readonly orderHistoryService: OrderHistoryService,
   ) {}
 
   static logInfo = 'Service - OrderBook:';
@@ -59,7 +61,6 @@ export class OrderbookService {
 
   // ToDo: Refactor and split into smaller methods
   // ToDo: Add transactions
-  // ToDo: Add History logic
   async sellOrder(userId: string, orderInfo: CreateSellOrderReqDto) {
     this.logger.info(
       `${OrderbookService.logInfo} Sell order init | userId=${userId} | stock=${orderInfo.stockName} | qty=${orderInfo.quantity} | price=${orderInfo.price}`,
@@ -70,7 +71,7 @@ export class OrderbookService {
       await this.orderBookRepository.getOrderList(orderInfo);
     // 2️⃣ Match SELL against BUY
     const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
-      this.matchSellWithBuyOrders(userId, orderInfo, existingBuyOrders);
+      await this.matchSellWithBuyOrders(userId, orderInfo, existingBuyOrders);
 
     // 3️⃣ Bulk DB writes (orders cleanup)
     if (ordersToRemove.length > 0) {
@@ -82,6 +83,7 @@ export class OrderbookService {
 
     // 4️⃣ Save remaining SELL order (if not fully matched)
     let remainingOrder: OrderBookEntity | null = null;
+
     if (remainingQuantity > 0) {
       remainingOrder = await this.orderBookRepository.save(userId, {
         ...orderInfo,
@@ -97,10 +99,16 @@ export class OrderbookService {
         orderInfo.quantity - remainingQuantity
       } | remaining=${remainingQuantity}`,
     );
-    const totalAmountSold = trades.reduce((sum, t) => sum + t.quantity, 0);
+    const totalStockSold = trades.reduce((sum, t) => sum + t.quantity, 0);
     const fundsAdded = trades.reduce((sum, t) => sum + t.quantity * t.price, 0);
+    await this.orderHistoryService.createOrderHistory({
+      id: remainingOrder?.id ?? uuid(),
+      ...orderInfo,
+      user: { id: userId },
+      quantity: totalStockSold,
+    });
     return {
-      totalAmountSold,
+      totalStockSold,
       fundsAdded,
       trades,
       remainingOrder,
@@ -110,7 +118,7 @@ export class OrderbookService {
   /**
    * 🔹 Core matching logic
    */
-  private matchSellWithBuyOrders(
+  private async matchSellWithBuyOrders(
     sellerId: string,
     orderInfo: CreateSellOrderReqDto,
     buyOrders: OrderBookEntity[],
@@ -135,6 +143,10 @@ export class OrderbookService {
             availableQty,
           ),
         );
+        await this.orderHistoryService.createOrderHistory({
+          ...buyOrder,
+          price: orderInfo.price,
+        });
         remainingQuantity -= availableQty;
         ordersToRemove.push(buyOrder.id);
       } else {
@@ -148,6 +160,11 @@ export class OrderbookService {
             remainingQuantity,
           ),
         );
+        await this.orderHistoryService.createOrderHistory({
+          ...buyOrder,
+          price: orderInfo.price,
+          quantity: remainingQuantity,
+        });
         ordersToUpdate.push({
           id: buyOrder.id,
           quantity: availableQty - remainingQuantity,
@@ -217,7 +234,7 @@ export class OrderbookService {
 
     // 2️⃣ Match BUY against SELL
     const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
-      this.matchBuyWithSellOrders(userId, orderInfo, existingSellOrders);
+      await this.matchBuyWithSellOrders(userId, orderInfo, existingSellOrders);
 
     // 3️⃣ Bulk DB writes (orders cleanup)
     if (ordersToRemove.length > 0) {
@@ -244,10 +261,10 @@ export class OrderbookService {
         orderInfo.quantity - remainingQuantity
       } | remaining=${remainingQuantity}`,
     );
-    const totalAmountBought = trades.reduce((sum, t) => sum + t.quantity, 0);
+    const totalStockBought = trades.reduce((sum, t) => sum + t.quantity, 0);
     const fundsSpent = trades.reduce((sum, t) => sum + t.quantity * t.price, 0);
     return {
-      totalAmountBought,
+      totalStockBought,
       fundsSpent,
       trades,
       remainingOrder,
@@ -257,7 +274,7 @@ export class OrderbookService {
   /**
    * 🔹 Match BUY orders with SELL orders
    */
-  private matchBuyWithSellOrders(
+  private async matchBuyWithSellOrders(
     buyerId: string,
     orderInfo: CreateBuyOrderReqDto,
     sellOrders: OrderBookEntity[],
@@ -288,6 +305,9 @@ export class OrderbookService {
         );
         remainingQuantity -= availableQty;
         ordersToRemove.push(sellOrder.id);
+                await this.orderHistoryService.createOrderHistory(
+          sellOrder,
+        );
       } else {
         trades.push(
           this.buildTradeForBuy(
@@ -298,6 +318,10 @@ export class OrderbookService {
             sellOrder.price,
             remainingQuantity,
           ),
+        );
+        ordersToRemove.push(sellOrder.id);
+                await this.orderHistoryService.createOrderHistory(
+          { ...sellOrder, quantity: remainingQuantity }
         );
         ordersToUpdate.push({
           id: sellOrder.id,
