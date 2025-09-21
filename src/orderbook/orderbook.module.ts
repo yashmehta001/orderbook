@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { OrderbookController } from './orderbook.controller';
 import { OrderbookService } from './services/orderbook.service';
 import { OrderBookEntity } from './entities/orderbook.entity';
@@ -12,7 +12,7 @@ import { OrderHistoryModule } from '../orderHistory/orderHistory.module';
   imports: [
     TypeOrmModule.forFeature([OrderBookEntity]),
     LoggerModule,
-    UsersModule,
+    forwardRef(() => UsersModule),
     OrderHistoryModule,
   ],
   controllers: [OrderbookController],

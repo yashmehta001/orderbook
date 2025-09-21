@@ -102,8 +102,8 @@ export class OrderbookController {
   ) {
     return this.orderBookService.getOrdersByUserId(
       user.id,
-      query.stockName,
       query.side,
+      query.stockName,
     );
   }
 

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { UsersController } from './users.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEntity } from './entities/user.entity';
@@ -9,9 +9,15 @@ import { BcryptService } from '../utils/hash/bcrypt/bcrypt.service';
 import { TokenService, JwtService } from '../utils/token/services';
 import { JwtModule } from '@nestjs/jwt';
 import { LoggerModule } from '../utils/logger/logger.module';
+import { OrderbookModule } from '../orderbook/orderbook.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserEntity]), JwtModule, LoggerModule],
+  imports: [
+    TypeOrmModule.forFeature([UserEntity]),
+    JwtModule,
+    LoggerModule,
+    forwardRef(() => OrderbookModule),
+  ],
   controllers: [UsersController],
   providers: [
     UserService,
