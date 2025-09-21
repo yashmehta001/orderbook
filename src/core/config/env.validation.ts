@@ -19,7 +19,6 @@ export class EnvConfig {
   @Min(1)
   PORT!: number;
 
-  // Database
   @IsString()
   DATABASE_HOST!: string;
 

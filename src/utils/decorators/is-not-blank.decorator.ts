@@ -7,7 +7,6 @@ import {
 
 @ValidatorConstraint({ name: 'isNotBlank', async: false })
 class IsNotBlankConstraint implements ValidatorConstraintInterface {
-  // tslint:disable-next-line:no-any
   validate(value: any) {
     return typeof value === 'string' && value.trim().length > 0;
   }

@@ -17,7 +17,6 @@ export class AppSeeder {
   async seed(): Promise<void> {
     this.logger.info(`${AppSeeder.logInfo} Seeding Initialized`);
 
-    // Seed User
     const { user } = await this.userService.createUser(seedUser);
     seedOrders.forEach(async (seedOrder) => {
       await this.orderbookService.createOrder(user.id, seedOrder);

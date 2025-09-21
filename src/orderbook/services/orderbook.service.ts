@@ -357,7 +357,6 @@ export class OrderbookService {
     for (const sellOrder of sellOrders) {
       if (remainingQuantity <= 0) break;
 
-      // only consider SELL orders at or below buyer's price
       if (sellOrder.price > orderInfo.price) break;
 
       const availableQty = sellOrder.quantity;
@@ -369,7 +368,7 @@ export class OrderbookService {
             sellOrder.id,
             sellOrder?.user?.id,
             sellOrder.stockName,
-            sellOrder.price, // ✅ actual sell price
+            sellOrder.price,
             availableQty,
           ),
         );
@@ -429,7 +428,7 @@ export class OrderbookService {
       sellOrderId,
       sellerId,
       stockName,
-      price, // actual execution price
+      price,
       quantity,
     };
   }
@@ -445,7 +444,7 @@ export class OrderbookService {
     // 1️⃣ Aggregate buyer debit & seller credits
     for (const { sellerId, quantity, price } of trades) {
       const totalCost = quantity * price;
-      buyerDebit -= totalCost; // buyer loses funds
+      buyerDebit -= totalCost;
       sellerCredits[sellerId] = (sellerCredits[sellerId] || 0) + totalCost;
     }
 

@@ -16,7 +16,6 @@ export class AuthenticationGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly userAccessTokenGuard: UserAccessTokenGuard,
   ) {
-    // build after DI
     this.authTypeGuardMap = {
       [AuthType.UserBearer]: this.userAccessTokenGuard,
       [AuthType.None]: { canActivate: () => true },
