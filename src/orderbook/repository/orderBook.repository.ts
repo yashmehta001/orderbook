@@ -15,13 +15,13 @@ export class OrderBookRepository {
   async save(
     userId: string,
     orderInfos: CreateOrderBookReqDto,
-    id?:string
+    id?: string,
   ): Promise<OrderBookEntity> {
     const orderEntity = this.orderBookEntity.create({
-    ...orderInfos,
-    user: { id: userId },
-    id,
-  });
+      ...orderInfos,
+      user: { id: userId },
+      id,
+    });
     return await this.orderBookEntity.save(orderEntity);
   }
 

@@ -234,7 +234,12 @@ export class OrderbookService {
     const id = uuid();
     // 2️⃣ Match BUY against SELL
     const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
-      await this.matchBuyWithSellOrders(userId, orderInfo, existingSellOrders, id);
+      await this.matchBuyWithSellOrders(
+        userId,
+        orderInfo,
+        existingSellOrders,
+        id,
+      );
 
     // 3️⃣ Bulk DB writes (orders cleanup)
     if (ordersToRemove.length > 0) {
@@ -247,10 +252,14 @@ export class OrderbookService {
     // 4️⃣ Save remaining BUY order (if not fully matched)
     let remainingOrder: OrderBookEntity | null = null;
     if (remainingQuantity > 0) {
-      remainingOrder = await this.orderBookRepository.save(userId, {
-        ...orderInfo,
-        quantity: remainingQuantity,
-      },id);
+      remainingOrder = await this.orderBookRepository.save(
+        userId,
+        {
+          ...orderInfo,
+          quantity: remainingQuantity,
+        },
+        id,
+      );
     }
 
     // 5️⃣ Process funds movement (buyer pays, seller receives)
@@ -306,12 +315,14 @@ export class OrderbookService {
         );
         remainingQuantity -= availableQty;
         ordersToRemove.push(sellOrder.id);
-        await this.orderHistoryService.createOrderHistory(
-          sellOrder,
-        );
-        await this.orderHistoryService.createOrderHistory(
-          {...orderInfo, user: { id: buyerId }, id, quantity: availableQty, price: sellOrder.price }
-        );
+        await this.orderHistoryService.createOrderHistory(sellOrder);
+        await this.orderHistoryService.createOrderHistory({
+          ...orderInfo,
+          user: { id: buyerId },
+          id,
+          quantity: availableQty,
+          price: sellOrder.price,
+        });
       } else {
         trades.push(
           this.buildTradeForBuy(
@@ -323,12 +334,17 @@ export class OrderbookService {
             remainingQuantity,
           ),
         );
-                await this.orderHistoryService.createOrderHistory(
-          { ...sellOrder, quantity: remainingQuantity }
-                );
-                await this.orderHistoryService.createOrderHistory(
-          {...orderInfo, user: { id: buyerId }, id, quantity: remainingQuantity, price: sellOrder.price }
-                );
+        await this.orderHistoryService.createOrderHistory({
+          ...sellOrder,
+          quantity: remainingQuantity,
+        });
+        await this.orderHistoryService.createOrderHistory({
+          ...orderInfo,
+          user: { id: buyerId },
+          id,
+          quantity: remainingQuantity,
+          price: sellOrder.price,
+        });
         ordersToUpdate.push({
           id: sellOrder.id,
           quantity: availableQty - remainingQuantity,

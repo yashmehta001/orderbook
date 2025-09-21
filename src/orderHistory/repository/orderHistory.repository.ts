@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { OrderHistoryEntity } from '../entities/orderHistory.entity';
+import { CreateOrderHistoryDto } from '../dto/createHistory.dto';
 
 @Injectable()
 export class OrderHistoryRepository {
@@ -11,7 +12,7 @@ export class OrderHistoryRepository {
   ) {}
 
   async save(
-    orderInfo: Partial<OrderHistoryEntity>,
+    orderInfo: Partial<CreateOrderHistoryDto>,
   ): Promise<OrderHistoryEntity> {
     const orderEntity = this.orderHistoryEntity.create({
       transactionId: orderInfo.id,
