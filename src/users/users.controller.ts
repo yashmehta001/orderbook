@@ -11,10 +11,13 @@ import {
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiConflictResponse,
   ApiCreatedResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiResponse,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import {
   ManageFundsReqDto,
@@ -36,7 +39,7 @@ export class UsersController {
   constructor(private readonly userService: UserService) {}
 
   @Auth(AuthType.None)
-  @Serialize(UserLoginResDto)
+  @Serialize(UserLoginResDto, 'User Created')
   @ApiResponse({
     description: 'for more information please check UserCreateReqDto schema',
   })
@@ -45,7 +48,7 @@ export class UsersController {
       'When user registration successfully then this response will receive',
     type: UserLoginResDto,
   })
-  @ApiBadRequestResponse({
+  @ApiConflictResponse({
     description: 'when user email is already taken',
   })
   @HttpCode(HttpStatus.CREATED)
@@ -63,9 +66,9 @@ export class UsersController {
     description: 'When user login successfully then this response will receive',
     type: UserLoginResDto,
   })
-  @ApiBadRequestResponse({
+  @ApiUnauthorizedResponse({
     description:
-      'when user email or password is wrong or user account is ban from admin',
+      'when user email or password is incorrect, email not found or user account is ban from admin',
   })
   @HttpCode(HttpStatus.OK)
   @Post('/login')
@@ -82,7 +85,7 @@ export class UsersController {
       'When user profile is successfully retrieved then this response will receive',
     type: UserProfileResDto,
   })
-  @ApiBadRequestResponse({
+  @ApiNotFoundResponse({
     description: 'when user not found',
   })
   @ApiBearerAuth()
@@ -100,6 +103,9 @@ export class UsersController {
     type: UserProfileResDto,
   })
   @ApiBadRequestResponse({
+    description: 'insufficient funds',
+  })
+  @ApiNotFoundResponse({
     description: 'when user not found',
   })
   @ApiBearerAuth()

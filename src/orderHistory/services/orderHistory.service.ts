@@ -14,7 +14,7 @@ export class OrderHistoryService {
   static logInfo = 'Service - OrderHistory:';
   async createOrderHistory(orderInfo: CreateOrderHistoryDto): Promise<any> {
     try {
-      if(!orderInfo.quantity || orderInfo.quantity<=0) return 
+      if (!orderInfo.quantity || orderInfo.quantity <= 0) return;
       this.logger.info(
         `${OrderHistoryService.logInfo} Creating order history for user ${orderInfo.user.id}`,
       );

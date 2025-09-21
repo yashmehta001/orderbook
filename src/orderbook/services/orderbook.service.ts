@@ -322,7 +322,7 @@ export class OrderbookService {
     quantity: number,
     orderId?: string,
   ) {
-    if (quantity<=0) return 
+    if (quantity <= 0) return;
     if (isSell) {
       await this.orderHistoryService.createOrderHistory({
         ...opposite,
@@ -337,7 +337,7 @@ export class OrderbookService {
       await this.orderHistoryService.createOrderHistory({
         ...orderInfo,
         user: { id: initiatorId },
-        id: orderId?? uuid(),
+        id: orderId ?? uuid(),
         quantity,
         price: opposite.price,
       });
@@ -410,7 +410,7 @@ export class OrderbookService {
     orderId: string | undefined,
     totalQuantity: number,
   ) {
-    if (totalQuantity<=0) return 
+    if (totalQuantity <= 0) return;
     await this.orderHistoryService.createOrderHistory({
       id: orderId ?? uuid(),
       ...orderInfo,
