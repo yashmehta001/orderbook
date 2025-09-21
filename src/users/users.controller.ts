@@ -11,6 +11,7 @@ import {
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiCreatedResponse,
   ApiOkResponse,
   ApiResponse,
   ApiTags,
@@ -39,7 +40,7 @@ export class UsersController {
   @ApiResponse({
     description: 'for more information please check UserCreateReqDto schema',
   })
-  @ApiOkResponse({
+  @ApiCreatedResponse({
     description:
       'When user registration successfully then this response will receive',
     type: UserLoginResDto,
@@ -47,7 +48,7 @@ export class UsersController {
   @ApiBadRequestResponse({
     description: 'when user email is already taken',
   })
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.CREATED)
   @Post('/signup')
   async signUp(@Body() body: UserCreateReqDto) {
     return this.userService.createUser(body);

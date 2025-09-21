@@ -1,4 +1,4 @@
-import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { forwardRef, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { UserCreateReqDto, UserLoginReqDto } from '../dto';
 import { UserRepository } from '../repository/users.repository';
 import { TokenService } from '../../utils/token/services';
@@ -11,6 +11,7 @@ import {
 } from '../../core/errors';
 import { LoggerService } from '../../utils/logger/WinstonLogger';
 import { QueryFailedError } from 'typeorm';
+import { OrderbookService } from '../../orderbook/services/orderbook.service';
 
 @Injectable()
 export class UserService {
@@ -23,6 +24,8 @@ export class UserService {
     private readonly hashService: HashService,
 
     private readonly tokenService: TokenService,
+    @Inject(forwardRef(() => OrderbookService))
+    private readonly orderBookService: OrderbookService,
   ) {}
   static logInfo = 'Service - User:';
 
@@ -126,6 +129,9 @@ export class UserService {
       `${UserService.logInfo} Update Funds for User with id: ${id}`,
     );
     try {
+      if (!(await this.orderBookService.validateBalance(id, funds)))
+        throw new CustomError('Insufficient Balance');
+
       const user = await this.userRepository.getById(id);
       if (!user) {
         this.logger.warn(
@@ -134,12 +140,6 @@ export class UserService {
         throw new NotFoundException();
       }
       user.funds += funds;
-      if (user.funds < 0) {
-        this.logger.warn(
-          `${UserService.logInfo} Insufficient Funds! for User with id: ${id}`,
-        );
-        throw new CustomError('Insufficient funds');
-      }
 
       await this.userRepository.save(user);
       this.logger.info(

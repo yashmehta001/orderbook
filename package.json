@@ -14,11 +14,10 @@
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "typeorm": "ts-node ./node_modules/typeorm/cli",
-    "migrations": "npm run build && npm run typeorm migration:run -- -d ./dist/database/config/orm-config.js",
+    "migrations": "npm run typeorm migration:run -- -d ./dist/database/config/orm-config.js",
     "typeorm:create-migration": "npm run typeorm -- migration:create ./src/database/migrations/migrations",
     "typeorm:generate-migration": "npm run typeorm -- -d ./src/database/config/orm-config.ts migration:generate ./src/database/migrations/migrations",
-    "typeorm:revert-migration": "npm run typeorm -- -d ./src/database/config/orm-config.ts migration:revert",
-    "seed": "ts-node -r tsconfig-paths/register src/database/seeds/seed.ts"
+    "typeorm:revert-migration": "npm run typeorm -- -d ./src/database/config/orm-config.ts migration:revert"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

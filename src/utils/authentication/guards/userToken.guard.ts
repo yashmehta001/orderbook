@@ -28,7 +28,6 @@ export class UserAccessTokenGuard implements CanActivate {
         throw new UnauthorizedException();
       }
 
-      // Attach payload safely
       (request as any)[REQUEST_USER_KEY] = payload;
       return true;
     } catch (error) {

@@ -1,4 +1,3 @@
-// db-error.util.ts
 import { QueryFailedError } from 'typeorm';
 import { CustomError } from './customException.error';
 import { HttpStatus } from '@nestjs/common';
