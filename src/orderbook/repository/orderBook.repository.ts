@@ -47,8 +47,13 @@ export class OrderBookRepository {
 
     return await orderBooks.getRawMany();
   }
-  async getOrderById(id: string) {
-    return this.orderBookEntity.findOne({ where: { id } });
+  async getOrderById(id: string, userId: string) {
+    const order = this.orderBookEntity
+      .createQueryBuilder('order')
+      .where({ id })
+      .leftJoin('order.user', 'user')
+      .andWhere('user.id = :userId', { userId });
+    return order.getOne();
   }
   async getOrdersByUserId(
     userId: string,

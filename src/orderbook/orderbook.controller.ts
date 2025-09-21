@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Query,
 } from '@nestjs/common';
@@ -11,6 +13,7 @@ import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiCreatedResponse,
+  ApiNoContentResponse,
   ApiOkResponse,
   ApiResponse,
   ApiTags,
@@ -102,6 +105,26 @@ export class OrderbookController {
       query.stockName,
       query.side,
     );
+  }
+
+  @Delete('/:id')
+  @ApiBearerAuth()
+  @Serialize({}, 'Order deleted successfully')
+  @ApiResponse({
+    description:
+      'for more information please check GetUserOrderBookResDto schema',
+  })
+  @ApiNoContentResponse({
+    description: 'order deleted successfully',
+  })
+  @ApiBadRequestResponse({
+    description: 'Bad Request',
+  })
+  async deleteOrderFromOrderBooks(
+    @AuthUser() user: UserProfileReqDto,
+    @Param('id') orderId: string,
+  ) {
+    return this.orderBookService.deleteOrder(user.id, orderId);
   }
 
   @Get('/order-books')

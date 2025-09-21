@@ -8,6 +8,7 @@ import { OrderBookEntity } from '../entities/orderbook.entity';
 import { UserService } from '../../users/services/users.service';
 import { OrderHistoryService } from '../../orderHistory/services/orderHistory.service';
 import { v4 as uuid } from 'uuid';
+import { NotFoundException } from '../../core/errors';
 @Injectable()
 export class OrderbookService {
   constructor(
@@ -76,6 +77,31 @@ export class OrderbookService {
       `${OrderbookService.logInfo} Fetched Orders for userId: ${userId}`,
     );
     return orders;
+  }
+
+  async deleteOrder(userId: string, id: string) {
+    try {
+      this.logger.info(
+        `${OrderbookService.logInfo} Deleting Order id: ${id} for userId: ${userId}`,
+      );
+      const order = await this.orderBookRepository.getOrderById(id, userId);
+      if (!order) {
+        this.logger.warn(
+          `${OrderbookService.logInfo} Not Found! Order with id: ${id}`,
+        );
+        throw new NotFoundException();
+      }
+      await this.orderBookRepository.bulkRemoveOrders([id]);
+      this.logger.info(
+        `${OrderbookService.logInfo} Deleted Order id: ${id} for userId: ${userId}`,
+      );
+      return;
+    } catch (error) {
+      this.logger.warn(
+        `${OrderbookService.logInfo} ${error.message} for id: ${id}`,
+      );
+      throw error;
+    }
   }
 
   // ToDo: Refactor and split into smaller methods
