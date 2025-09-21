@@ -110,7 +110,6 @@ export class OrderbookService {
     }
   }
 
-  // ToDo: Refactor and split into smaller methods
   // ToDo: Add transactions
   async sellOrder(userId: string, orderInfo: CreateSellOrderReqDto) {
     this.logInit('SELL', userId, orderInfo);
