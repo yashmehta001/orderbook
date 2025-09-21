@@ -5,15 +5,17 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
+  BeforeInsert,
 } from 'typeorm';
 import { OrderSideEnum } from '../../core/config';
+import { v4 as uuid } from 'uuid';
 
 @Entity({
-  name: 'orderbook',
+  name: 'Order_Book',
 })
 export class OrderBookEntity {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: 'uuid' })
   id: string;
 
   @Column({
@@ -38,4 +40,11 @@ export class OrderBookEntity {
 
   @Column(() => AuditInfo, { prefix: false })
   auditInfo: AuditInfo;
+
+  @BeforeInsert()
+  generateId() {
+    if (!this.id) {
+      this.id = uuid();
+    }
+  }
 }

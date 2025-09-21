@@ -11,7 +11,6 @@ export class OrderHistoryService {
   ) {}
   static logInfo = 'Service - OrderHistory:';
   async createOrderHistory(orderInfo): Promise<any> {
-    console.log('orderInfo in createOrderHistory', orderInfo);
     this.logger.info(
       `${OrderHistoryService.logInfo} Creating order history for user ${orderInfo.user.id}`,
     );

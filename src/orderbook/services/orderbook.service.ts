@@ -231,10 +231,10 @@ export class OrderbookService {
     // 1️⃣ Get all eligible SELL orders (lowest price first)
     const existingSellOrders =
       await this.orderBookRepository.getOrderList(orderInfo);
-
+    const id = uuid();
     // 2️⃣ Match BUY against SELL
     const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
-      await this.matchBuyWithSellOrders(userId, orderInfo, existingSellOrders);
+      await this.matchBuyWithSellOrders(userId, orderInfo, existingSellOrders, id);
 
     // 3️⃣ Bulk DB writes (orders cleanup)
     if (ordersToRemove.length > 0) {
@@ -250,7 +250,7 @@ export class OrderbookService {
       remainingOrder = await this.orderBookRepository.save(userId, {
         ...orderInfo,
         quantity: remainingQuantity,
-      });
+      },id);
     }
 
     // 5️⃣ Process funds movement (buyer pays, seller receives)
@@ -278,6 +278,7 @@ export class OrderbookService {
     buyerId: string,
     orderInfo: CreateBuyOrderReqDto,
     sellOrders: OrderBookEntity[],
+    id: string,
   ) {
     let remainingQuantity = orderInfo.quantity;
     const trades: any[] = [];
@@ -305,8 +306,11 @@ export class OrderbookService {
         );
         remainingQuantity -= availableQty;
         ordersToRemove.push(sellOrder.id);
-                await this.orderHistoryService.createOrderHistory(
+        await this.orderHistoryService.createOrderHistory(
           sellOrder,
+        );
+        await this.orderHistoryService.createOrderHistory(
+          {...orderInfo, user: { id: buyerId }, id, quantity: availableQty, price: sellOrder.price }
         );
       } else {
         trades.push(
@@ -319,10 +323,12 @@ export class OrderbookService {
             remainingQuantity,
           ),
         );
-        ordersToRemove.push(sellOrder.id);
                 await this.orderHistoryService.createOrderHistory(
           { ...sellOrder, quantity: remainingQuantity }
-        );
+                );
+                await this.orderHistoryService.createOrderHistory(
+          {...orderInfo, user: { id: buyerId }, id, quantity: remainingQuantity, price: sellOrder.price }
+                );
         ordersToUpdate.push({
           id: sellOrder.id,
           quantity: availableQty - remainingQuantity,
