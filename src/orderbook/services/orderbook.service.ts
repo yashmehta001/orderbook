@@ -24,14 +24,19 @@ export class OrderbookService {
   static logInfo = 'Service - OrderBook:';
 
   async createOrder(userId: string, orderInfo: CreateOrderBookReqDto) {
-    this.logger.info(
-      `${OrderbookService.logInfo} Create Order for userId: ${userId}`,
-    );
-    const order = await this.orderBookRepository.save(userId, orderInfo);
-    this.logger.info(
-      `${OrderbookService.logInfo} Created Order for userId: ${userId}`,
-    );
-    return order;
+    try {
+      this.logger.info(
+        `${OrderbookService.logInfo} Create Order for userId: ${userId}`,
+      );
+      const order = await this.orderBookRepository.save(userId, orderInfo);
+      this.logger.info(
+        `${OrderbookService.logInfo} Created Order for userId: ${userId}`,
+      );
+      return order;
+    } catch (error) {
+      this.logger.warn(`${OrderbookService.logInfo} ${error.message}`);
+      throw error;
+    }
   }
 
   async getOrderBooks(
@@ -39,31 +44,36 @@ export class OrderbookService {
     stockName: string = '',
     side?: OrderSideEnum,
   ) {
-    this.logger.info(
-      `${OrderbookService.logInfo} Fetching OrderBooks for stockName: ${stockName}`,
-    );
-    const rawOrderBooks = await this.orderBookRepository.getOrderBooks(
-      userId,
-      stockName,
-      side,
-    );
-    const grouped = {
-      BUY: [] as { price: number; quantity: number; stockName: string }[],
-      SELL: [] as { price: number; quantity: number; stockName: string }[],
-    };
+    try {
+      this.logger.info(
+        `${OrderbookService.logInfo} Fetching OrderBooks for stockName: ${stockName}`,
+      );
+      const rawOrderBooks = await this.orderBookRepository.getOrderBooks(
+        userId,
+        stockName,
+        side,
+      );
+      const grouped = {
+        BUY: [] as { price: number; quantity: number; stockName: string }[],
+        SELL: [] as { price: number; quantity: number; stockName: string }[],
+      };
 
-    rawOrderBooks.forEach((row) => {
-      const side = row.side as OrderSideEnum;
-      grouped[side].push({
-        price: parseFloat(row.price),
-        quantity: parseInt(row.quantity),
-        stockName: row.stockName,
+      rawOrderBooks.forEach((row) => {
+        const side = row.side as OrderSideEnum;
+        grouped[side].push({
+          price: parseFloat(row.price),
+          quantity: parseInt(row.quantity),
+          stockName: row.stockName,
+        });
       });
-    });
-    this.logger.info(
-      `${OrderbookService.logInfo} Fetched OrderBooks for stockName: ${stockName}`,
-    );
-    return grouped;
+      this.logger.info(
+        `${OrderbookService.logInfo} Fetched OrderBooks for stockName: ${stockName}`,
+      );
+      return grouped;
+    } catch (error) {
+      this.logger.warn(`${OrderbookService.logInfo} ${error.message}`);
+      throw error;
+    }
   }
 
   async getOrdersByUserId(
@@ -71,18 +81,23 @@ export class OrderbookService {
     side?: OrderSideEnum,
     stockName?: string,
   ) {
-    this.logger.info(
-      `${OrderbookService.logInfo} Fetching Orders for userId: ${userId}`,
-    );
-    const orders = await this.orderBookRepository.getOrdersByUserId(
-      userId,
-      stockName,
-      side,
-    );
-    this.logger.info(
-      `${OrderbookService.logInfo} Fetched Orders for userId: ${userId}`,
-    );
-    return orders;
+    try {
+      this.logger.info(
+        `${OrderbookService.logInfo} Fetching Orders for userId: ${userId}`,
+      );
+      const orders = await this.orderBookRepository.getOrdersByUserId(
+        userId,
+        stockName,
+        side,
+      );
+      this.logger.info(
+        `${OrderbookService.logInfo} Fetched Orders for userId: ${userId}`,
+      );
+      return orders;
+    } catch (error) {
+      this.logger.warn(`${OrderbookService.logInfo} ${error.message}`);
+      throw error;
+    }
   }
 
   async deleteOrder(userId: string, id: string) {
