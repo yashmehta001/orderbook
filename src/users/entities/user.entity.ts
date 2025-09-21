@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
   Unique,
 } from 'typeorm';
+import { OrderHistoryEntity } from '../../orderHistory/entities/orderHistory.entity';
 
 @Entity({
   name: 'users',
@@ -43,6 +44,11 @@ export class UserEntity {
 
   @OneToMany(() => OrderBookEntity, (order) => order.user, { cascade: true })
   orders: OrderBookEntity[];
+
+  @OneToMany(() => OrderHistoryEntity, (orderHistory) => orderHistory.user, {
+    cascade: true,
+  })
+  orderHistory: OrderBookEntity[];
 
   @Column(() => AuditInfo, { prefix: false })
   auditInfo: AuditInfo;

@@ -1,4 +1,3 @@
-// src/orderbook/dto/responses/create-buy-order-res.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { OrderSideEnum } from '../../../core/config';
@@ -54,7 +53,7 @@ class RemainingOrderDto {
 export class CreateBuyOrderResDto {
   @Expose()
   @ApiProperty({ example: 620 })
-  totalAmountBought: number;
+  totalStockBought: number;
 
   @Expose()
   @ApiProperty({ example: 93210 })

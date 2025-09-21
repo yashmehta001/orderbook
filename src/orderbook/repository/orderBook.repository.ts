@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { OrderBookEntity } from '../entities/orderbook.entity';
 import { CreateOrderBookReqDto } from '../dto';
 import { OrderSideEnum } from '../../core/config';
-
 @Injectable()
 export class OrderBookRepository {
   constructor(
@@ -15,10 +14,12 @@ export class OrderBookRepository {
   async save(
     userId: string,
     orderInfos: CreateOrderBookReqDto,
+    id?: string,
   ): Promise<OrderBookEntity> {
     const orderEntity = this.orderBookEntity.create({
       ...orderInfos,
       user: { id: userId },
+      id,
     });
     return await this.orderBookEntity.save(orderEntity);
   }
