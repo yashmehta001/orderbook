@@ -34,11 +34,16 @@ export class OrderbookService {
     return order;
   }
 
-  async getOrderBooks(stockName: string = '', side?: OrderSideEnum) {
+  async getOrderBooks(
+    userId: string,
+    stockName: string = '',
+    side?: OrderSideEnum,
+  ) {
     this.logger.info(
       `${OrderbookService.logInfo} Fetching OrderBooks for stockName: ${stockName}`,
     );
     const rawOrderBooks = await this.orderBookRepository.getOrderBooks(
+      userId,
       stockName,
       side,
     );
@@ -113,8 +118,13 @@ export class OrderbookService {
     );
 
     // 1️⃣ Get all eligible BUY orders in one query
-    const existingBuyOrders =
-      await this.orderBookRepository.getOrderList(orderInfo);
+    const existingBuyOrders = await this.orderBookRepository.getOrderList(
+      userId,
+      orderInfo,
+    );
+    console.log(userId);
+    console.log(existingBuyOrders);
+
     // 2️⃣ Match SELL against BUY
     const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
       await this.matchSellWithBuyOrders(userId, orderInfo, existingBuyOrders);
@@ -279,8 +289,10 @@ export class OrderbookService {
     )
       throw new CustomError('Insufficient Balance');
     // 1️⃣ Get all eligible SELL orders (lowest price first)
-    const existingSellOrders =
-      await this.orderBookRepository.getOrderList(orderInfo);
+    const existingSellOrders = await this.orderBookRepository.getOrderList(
+      userId,
+      orderInfo,
+    );
     const id = uuid();
     // 2️⃣ Match BUY against SELL
     const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =

@@ -25,16 +25,23 @@ export class OrderBookRepository {
     return await this.orderBookEntity.save(orderEntity);
   }
 
-  async getOrderBooks(stockName: string = '', side?: OrderSideEnum) {
+  async getOrderBooks(
+    userId: string,
+    stockName: string = '',
+    side?: OrderSideEnum,
+  ) {
     const orderBooks = this.orderBookEntity
       .createQueryBuilder('order')
       .select('order.side', 'side')
       .addSelect('order.stock_name', 'stockName')
       .addSelect('order.price', 'price')
       .addSelect('SUM(order.quantity)', 'quantity')
+      .leftJoinAndSelect('order.user', 'user')
+      .where('user.id != :userId', { userId })
       .groupBy('order.side')
       .addGroupBy('order.stock_name')
       .addGroupBy('order.price')
+      .addGroupBy('user.id')
       .orderBy('order.stock_name', 'ASC')
       .addOrderBy('order.price', 'DESC');
 
@@ -74,11 +81,12 @@ export class OrderBookRepository {
 
     return orders.getMany();
   }
-  //TODO: take userId as param to exclude user's own orders from listing
-  async getOrderList(data?: CreateOrderBookReqDto) {
+
+  async getOrderList(userId: string, data?: CreateOrderBookReqDto) {
     const query = this.orderBookEntity
       .createQueryBuilder('order')
-      .leftJoinAndSelect('order.user', 'user');
+      .leftJoinAndSelect('order.user', 'user')
+      .where('user.id != :userId', { userId });
 
     if (data?.side && data?.price !== undefined && data?.stockName) {
       const oppositeSide =
@@ -87,7 +95,7 @@ export class OrderBookRepository {
           : OrderSideEnum.BUY;
 
       query
-        .where('order.side = :side', { side: oppositeSide })
+        .andWhere('order.side = :side', { side: oppositeSide })
         .andWhere('order.stock_name = :stockName', {
           stockName: data.stockName,
         })
@@ -104,7 +112,6 @@ export class OrderBookRepository {
     }
 
     query.addOrderBy('order.auditInfo.createdAt', 'ASC');
-
     return query.getMany();
   }
 

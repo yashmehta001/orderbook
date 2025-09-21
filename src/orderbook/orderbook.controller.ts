@@ -140,7 +140,14 @@ export class OrderbookController {
   @ApiBadRequestResponse({
     description: 'Bad Request',
   })
-  async getOrderBooks(@Query() query: GetOrderBooksReqDto) {
-    return this.orderBookService.getOrderBooks(query.stockName, query.side);
+  async getOrderBooks(
+    @AuthUser() user: UserProfileReqDto,
+    @Query() query: GetOrderBooksReqDto,
+  ) {
+    return this.orderBookService.getOrderBooks(
+      user.id,
+      query.stockName,
+      query.side,
+    );
   }
 }
