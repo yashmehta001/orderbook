@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from '../entities';
 import { Repository } from 'typeorm/repository/Repository';
 import { UserCreateReqDto } from '../dto';
+import { EntityManager } from 'typeorm';
 
 export interface IUserRepository {
   save(userEntity: UserCreateReqDto): Promise<UserEntity>;
@@ -19,9 +20,16 @@ export class UserRepository implements IUserRepository {
     private readonly userEntity: Repository<UserEntity>,
   ) {}
 
-  async save(userInfo: UserCreateReqDto): Promise<UserEntity> {
-    const userEntity = this.userEntity.create(userInfo);
-    return await this.userEntity.save(userEntity);
+  private getRepo(manager?: EntityManager) {
+    return manager ? manager.getRepository(UserEntity) : this.userEntity;
+  }
+  async save(
+    userInfo: UserCreateReqDto,
+    manager?: EntityManager,
+  ): Promise<UserEntity> {
+    const repo = this.getRepo(manager);
+    const userEntity = repo.create(userInfo);
+    return await repo.save(userEntity);
   }
 
   async getByEmail(email: string): Promise<UserEntity | null> {

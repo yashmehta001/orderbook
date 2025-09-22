@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { OrderBookEntity } from '../entities/orderbook.entity';
 import { CreateOrderBookReqDto } from '../dto';
 import { OrderSideEnum } from '../../core/config';
@@ -12,17 +12,25 @@ export class OrderBookRepository {
     private readonly orderBookEntity: Repository<OrderBookEntity>,
   ) {}
 
+  private getRepo(manager?: EntityManager) {
+    return manager
+      ? manager.getRepository(OrderBookEntity)
+      : this.orderBookEntity;
+  }
+
   async save(
     userId: string,
     orderInfos: CreateOrderBookReqDto,
+    manager?: EntityManager,
     id?: string,
   ): Promise<OrderBookEntity> {
-    const orderEntity = this.orderBookEntity.create({
+    const repo = this.getRepo(manager);
+    const orderEntity = repo.create({
       ...orderInfos,
       user: { id: userId },
       id,
     });
-    return await this.orderBookEntity.save(orderEntity);
+    return repo.save(orderEntity);
   }
 
   async getOrderBooks(
@@ -115,18 +123,24 @@ export class OrderBookRepository {
     return query.getMany();
   }
 
-  async bulkRemoveOrders(orderIds: string[]): Promise<void> {
+  async bulkRemoveOrders(
+    orderIds: string[],
+    manager?: EntityManager,
+  ): Promise<void> {
+    const repo = this.getRepo(manager);
     if (orderIds.length === 0) return;
-    await this.orderBookEntity.delete(orderIds);
+    await repo.delete(orderIds);
   }
 
   async bulkUpdateQuantities(
     updates: { id: string; quantity: number }[],
+    manager?: EntityManager,
   ): Promise<void> {
+    const repo = this.getRepo(manager);
     if (updates.length === 0) return;
 
     const promises = updates.map(({ id, quantity }) =>
-      this.orderBookEntity.update(id, { quantity }),
+      repo.update(id, { quantity }),
     );
     await Promise.all(promises);
   }
