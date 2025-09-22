@@ -3,6 +3,7 @@ import { LoggerService } from '../../utils/logger/WinstonLogger';
 import { OrderHistoryRepository } from '../repository/orderHistory.repository';
 import { CreateOrderHistoryDto } from '../dto/request/createHistory.dto';
 import { OrderHistoryItemDto, OrderHistoryTransactionResDto } from '../dto';
+import { EntityManager } from 'typeorm';
 
 @Injectable()
 export class OrderHistoryService {
@@ -12,13 +13,19 @@ export class OrderHistoryService {
     private readonly logger: LoggerService,
   ) {}
   static logInfo = 'Service - OrderHistory:';
-  async createOrderHistory(orderInfo: CreateOrderHistoryDto): Promise<any> {
+  async createOrderHistory(
+    orderInfo: CreateOrderHistoryDto,
+    manager?: EntityManager,
+  ): Promise<any> {
     try {
       if (!orderInfo.quantity || orderInfo.quantity <= 0) return;
       this.logger.info(
         `${OrderHistoryService.logInfo} Creating order history for user ${orderInfo.user.id}`,
       );
-      const history = await this.orderHistoryRepository.save(orderInfo);
+      const history = await this.orderHistoryRepository.save(
+        orderInfo,
+        manager,
+      );
       this.logger.info(
         `${OrderHistoryService.logInfo} Successfully created order history for user ${orderInfo.user.id}`,
       );

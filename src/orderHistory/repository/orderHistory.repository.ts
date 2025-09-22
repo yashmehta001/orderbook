@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { OrderHistoryEntity } from '../entities/orderHistory.entity';
 import { CreateOrderHistoryDto } from '../dto/request/createHistory.dto';
 
@@ -11,10 +11,18 @@ export class OrderHistoryRepository {
     private readonly orderHistoryEntity: Repository<OrderHistoryEntity>,
   ) {}
 
+  private getRepo(manager?: EntityManager) {
+    return manager
+      ? manager.getRepository(OrderHistoryEntity)
+      : this.orderHistoryEntity;
+  }
+
   async save(
     orderInfo: Partial<CreateOrderHistoryDto>,
+    manager?: EntityManager,
   ): Promise<OrderHistoryEntity> {
-    const orderEntity = this.orderHistoryEntity.create({
+    const repo = this.getRepo(manager);
+    const orderEntity = repo.create({
       transactionId: orderInfo.id,
       stockName: orderInfo.stockName,
       side: orderInfo.side,
@@ -22,7 +30,7 @@ export class OrderHistoryRepository {
       quantity: orderInfo.quantity,
       user: orderInfo.user ? { id: orderInfo.user.id } : undefined,
     });
-    return this.orderHistoryEntity.save(orderEntity);
+    return repo.save(orderEntity);
   }
 
   async getByUserId(userId: string): Promise<OrderHistoryEntity[]> {

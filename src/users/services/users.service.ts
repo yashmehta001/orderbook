@@ -10,7 +10,7 @@ import {
   translateTypeOrmError,
 } from '../../core/errors';
 import { LoggerService } from '../../utils/logger/WinstonLogger';
-import { QueryFailedError } from 'typeorm';
+import { EntityManager, QueryFailedError } from 'typeorm';
 import { OrderbookService } from '../../orderbook/services/orderbook.service';
 
 @Injectable()
@@ -124,7 +124,7 @@ export class UserService {
     }
   }
 
-  async updateFunds(id: string, funds: number) {
+  async updateFunds(id: string, funds: number, manager?: EntityManager) {
     this.logger.info(
       `${UserService.logInfo} Update Funds for User with id: ${id}`,
     );
@@ -141,7 +141,7 @@ export class UserService {
       }
       user.funds += funds;
 
-      await this.userRepository.save(user);
+      await this.userRepository.save(user, manager);
       this.logger.info(
         `${UserService.logInfo} Updated Funds for User with id: ${id}`,
       );

@@ -9,6 +9,7 @@ import { UserService } from '../../users/services/users.service';
 import { OrderHistoryService } from '../../orderHistory/services/orderHistory.service';
 import { v4 as uuid } from 'uuid';
 import { CustomError, NotFoundException } from '../../core/errors';
+import { DataSource, EntityManager } from 'typeorm';
 @Injectable()
 export class OrderbookService {
   constructor(
@@ -19,6 +20,8 @@ export class OrderbookService {
     @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
     private readonly orderHistoryService: OrderHistoryService,
+
+    private dataSource: DataSource,
   ) {}
 
   static logInfo = 'Service - OrderBook:';
@@ -127,9 +130,12 @@ export class OrderbookService {
 
   // ToDo: Add transactions
   async sellOrder(userId: string, orderInfo: CreateSellOrderReqDto) {
+    this.logInit('SELL', userId, orderInfo);
+    const queryRunner = this.dataSource.createQueryRunner();
     try {
-      this.logInit('SELL', userId, orderInfo);
-
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+      const manager = queryRunner.manager;
       const existingBuyOrders = await this.orderBookRepository.getOrderList(
         userId,
         orderInfo,
@@ -140,16 +146,18 @@ export class OrderbookService {
           orderInfo,
           oppositeOrders: existingBuyOrders,
           isSell: true,
+          manager,
         });
-      await this.applyOrderBookUpdates(ordersToRemove, ordersToUpdate);
+      await this.applyOrderBookUpdates(ordersToRemove, ordersToUpdate, manager);
 
       const remainingOrder = await this.saveRemainingOrder(
         userId,
         orderInfo,
         remainingQuantity,
+        manager,
       );
 
-      await this.processFundsForSell(userId, trades, orderInfo.price);
+      await this.processFundsForSell(userId, trades, orderInfo.price, manager);
 
       const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
 
@@ -158,10 +166,11 @@ export class OrderbookService {
         orderInfo,
         remainingOrder?.id,
         totalQuantity,
+        manager,
       );
 
       this.logComplete('SELL', userId, orderInfo, remainingQuantity);
-
+      await queryRunner.commitTransaction();
       return {
         totalStockSold: totalQuantity,
         fundsAdded: totalFunds,
@@ -172,12 +181,19 @@ export class OrderbookService {
       this.logger.warn(
         `${OrderbookService.logInfo} ${error.message} for userId: ${userId} payload: ${orderInfo}`,
       );
+      await queryRunner.rollbackTransaction();
       throw error;
+    } finally {
+      await queryRunner.release();
     }
   }
 
   async buyOrder(userId: string, orderInfo: CreateBuyOrderReqDto) {
+    const queryRunner = this.dataSource.createQueryRunner();
     try {
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+      const manager = queryRunner.manager;
       this.logInit('BUY', userId, orderInfo);
 
       if (
@@ -201,24 +217,26 @@ export class OrderbookService {
           orderInfo,
           oppositeOrders: existingSellOrders,
           isSell: false,
+          manager,
           orderId: id,
         });
 
-      await this.applyOrderBookUpdates(ordersToRemove, ordersToUpdate);
+      await this.applyOrderBookUpdates(ordersToRemove, ordersToUpdate, manager);
 
       const remainingOrder = await this.saveRemainingOrder(
         userId,
         orderInfo,
         remainingQuantity,
+        manager,
         id,
       );
 
-      await this.processFundsForBuy(userId, trades);
+      await this.processFundsForBuy(userId, trades, manager);
 
       const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
 
       this.logComplete('BUY', userId, orderInfo, remainingQuantity);
-
+      await queryRunner.commitTransaction();
       return {
         totalStockBought: totalQuantity,
         fundsSpent: totalFunds,
@@ -229,7 +247,10 @@ export class OrderbookService {
       this.logger.warn(
         `${OrderbookService.logInfo} ${error.message} for userId: ${userId} payload: ${orderInfo}`,
       );
+      await queryRunner.rollbackTransaction();
       throw error;
+    } finally {
+      await queryRunner.release();
     }
   }
 
@@ -266,9 +287,11 @@ export class OrderbookService {
     orderInfo: CreateBuyOrderReqDto | CreateSellOrderReqDto;
     oppositeOrders: OrderBookEntity[];
     isSell: boolean;
+    manager: EntityManager;
     orderId?: string;
   }) {
-    const { initiatorId, orderInfo, oppositeOrders, isSell, orderId } = params;
+    const { initiatorId, orderInfo, oppositeOrders, isSell, orderId, manager } =
+      params;
     let remainingQuantity = orderInfo.quantity;
     const trades: any[] = [];
     const ordersToRemove: string[] = [];
@@ -298,6 +321,7 @@ export class OrderbookService {
         opposite,
         orderInfo,
         tradeQty,
+        manager,
         orderId,
       );
 
@@ -356,50 +380,63 @@ export class OrderbookService {
     opposite: OrderBookEntity,
     orderInfo: CreateBuyOrderReqDto | CreateSellOrderReqDto,
     quantity: number,
+    manager: EntityManager,
     orderId?: string,
   ) {
     if (quantity <= 0) return;
     if (isSell) {
-      await this.orderHistoryService.createOrderHistory({
-        ...opposite,
-        price: orderInfo.price,
-        quantity,
-      });
+      await this.orderHistoryService.createOrderHistory(
+        {
+          ...opposite,
+          price: orderInfo.price,
+          quantity,
+        },
+        manager,
+      );
     } else {
-      await this.orderHistoryService.createOrderHistory({
-        ...opposite,
-        quantity,
-      });
-      await this.orderHistoryService.createOrderHistory({
-        ...orderInfo,
-        user: { id: initiatorId },
-        id: orderId ?? uuid(),
-        quantity,
-        price: opposite.price,
-      });
+      await this.orderHistoryService.createOrderHistory(
+        {
+          ...opposite,
+          quantity,
+        },
+        manager,
+      );
+      await this.orderHistoryService.createOrderHistory(
+        {
+          ...orderInfo,
+          user: { id: initiatorId },
+          id: orderId ?? uuid(),
+          quantity,
+          price: opposite.price,
+        },
+        manager,
+      );
     }
   }
 
   private async applyOrderBookUpdates(
     remove: string[],
     update: { id: string; quantity: number }[],
+    manager: EntityManager,
   ) {
     if (remove.length > 0)
-      await this.orderBookRepository.bulkRemoveOrders(remove);
+      await this.orderBookRepository.bulkRemoveOrders(remove, manager);
     if (update.length > 0)
-      await this.orderBookRepository.bulkUpdateQuantities(update);
+      await this.orderBookRepository.bulkUpdateQuantities(update, manager);
   }
 
   private async saveRemainingOrder(
     userId: string,
     orderInfo: CreateBuyOrderReqDto | CreateSellOrderReqDto,
     remainingQuantity: number,
+    manager: EntityManager,
     id?: string,
   ) {
     if (remainingQuantity <= 0) return null;
     return this.orderBookRepository.save(
       userId,
       { ...orderInfo, quantity: remainingQuantity },
+      manager,
       id,
     );
   }
@@ -408,9 +445,10 @@ export class OrderbookService {
     sellerId: string,
     trades: any[],
     price: number,
+    manager: EntityManager,
   ) {
     const sellerCredit = trades.reduce((sum, t) => sum + t.quantity * price, 0);
-    await this.userService.updateFunds(sellerId, sellerCredit);
+    await this.userService.updateFunds(sellerId, sellerCredit, manager);
 
     const buyerDebits: Record<string, number> = {};
     for (const { buyerId, quantity, price: tradePrice } of trades) {
@@ -419,11 +457,15 @@ export class OrderbookService {
     }
 
     for (const [buyerId, deltaFunds] of Object.entries(buyerDebits)) {
-      await this.userService.updateFunds(buyerId, deltaFunds);
+      await this.userService.updateFunds(buyerId, deltaFunds, manager);
     }
   }
 
-  private async processFundsForBuy(buyerId: string, trades: any[]) {
+  private async processFundsForBuy(
+    buyerId: string,
+    trades: any[],
+    manager: EntityManager,
+  ) {
     const sellerCredits: Record<string, number> = {};
     let buyerDebit = 0;
 
@@ -433,10 +475,10 @@ export class OrderbookService {
       sellerCredits[sellerId] = (sellerCredits[sellerId] || 0) + total;
     }
 
-    await this.userService.updateFunds(buyerId, buyerDebit);
+    await this.userService.updateFunds(buyerId, buyerDebit, manager);
 
     for (const [sellerId, delta] of Object.entries(sellerCredits)) {
-      await this.userService.updateFunds(sellerId, delta);
+      await this.userService.updateFunds(sellerId, delta, manager);
     }
   }
 
@@ -445,14 +487,18 @@ export class OrderbookService {
     orderInfo: CreateSellOrderReqDto,
     orderId: string | undefined,
     totalQuantity: number,
+    manager: EntityManager,
   ) {
     if (totalQuantity <= 0) return;
-    await this.orderHistoryService.createOrderHistory({
-      id: orderId ?? uuid(),
-      ...orderInfo,
-      user: { id: userId },
-      quantity: totalQuantity,
-    });
+    await this.orderHistoryService.createOrderHistory(
+      {
+        id: orderId ?? uuid(),
+        ...orderInfo,
+        user: { id: userId },
+        quantity: totalQuantity,
+      },
+      manager,
+    );
   }
 
   private summarizeTrades(trades: any[]) {
