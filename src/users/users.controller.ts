@@ -94,7 +94,7 @@ export class UsersController {
     return this.userService.profile(user.id);
   }
 
-  @Serialize(UserProfileResDto)
+  @Serialize(UserProfileResDto, 'Funds successfully updated')
   @ApiResponse({
     description: 'for more information please check ManageFundsReqDto schema',
   })

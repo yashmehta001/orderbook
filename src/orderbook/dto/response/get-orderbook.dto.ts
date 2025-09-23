@@ -3,7 +3,7 @@ import { Expose, Type } from 'class-transformer';
 
 export class OrderBookLevelDto {
   @Expose()
-  @ApiProperty({ example: 'Google' })
+  @ApiProperty({ example: 'google' })
   stockName: string;
 
   @Expose()

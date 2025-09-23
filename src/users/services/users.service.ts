@@ -56,9 +56,10 @@ export class UserService {
         throw translateTypeOrmError(error);
       }
       this.logger.warn(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         `${UserService.logInfo} ${error.message} for email: ${data.email}`,
       );
-      throw new error();
+      throw error;
     }
   }
 
@@ -98,6 +99,7 @@ export class UserService {
       };
     } catch (error) {
       this.logger.warn(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         `${UserService.logInfo} ${error.message} for email: ${data.email}`,
       );
       throw error;
@@ -119,6 +121,7 @@ export class UserService {
       );
       return user;
     } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this.logger.warn(`${UserService.logInfo} ${error.message} for id: ${id}`);
       throw error;
     }
@@ -147,6 +150,7 @@ export class UserService {
       );
       return user;
     } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this.logger.warn(`${UserService.logInfo} ${error.message} for id: ${id}`);
       throw error;
     }

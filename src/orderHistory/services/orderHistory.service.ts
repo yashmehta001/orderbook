@@ -32,6 +32,7 @@ export class OrderHistoryService {
       return history;
     } catch (error) {
       this.logger.warn(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         `${OrderHistoryService.logInfo} Error creating order history for user ${orderInfo.user.id}: ${error.message}`,
       );
       throw error;
@@ -78,6 +79,7 @@ export class OrderHistoryService {
       return result;
     } catch (error) {
       this.logger.warn(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         `${OrderHistoryService.logInfo} Error fetching order history for user ${userId}: ${error.message}`,
       );
       throw error;

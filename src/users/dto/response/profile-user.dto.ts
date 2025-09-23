@@ -12,6 +12,7 @@ export class UserProfileResDto {
   @ApiProperty({
     example: 'John Doe',
   })
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   @Transform(({ obj }) => `${obj.firstName} ${obj.lastName}`)
   fullName: string;
 

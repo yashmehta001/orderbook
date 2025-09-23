@@ -5,6 +5,12 @@ import { OrderBookEntity } from '../entities/orderbook.entity';
 import { CreateOrderBookReqDto } from '../dto';
 import { OrderSideEnum } from '../../core/config';
 
+interface OrderBookRaw {
+  side: string;
+  stockName: string;
+  price: number;
+  quantity: string; // or number if casted
+}
 @Injectable()
 export class OrderBookRepository {
   constructor(
@@ -44,12 +50,11 @@ export class OrderBookRepository {
       .addSelect('order.stock_name', 'stockName')
       .addSelect('order.price', 'price')
       .addSelect('SUM(order.quantity)', 'quantity')
-      .leftJoinAndSelect('order.user', 'user')
+      .leftJoin('order.user', 'user')
       .where('user.id != :userId', { userId })
       .groupBy('order.side')
       .addGroupBy('order.stock_name')
       .addGroupBy('order.price')
-      .addGroupBy('user.id')
       .orderBy('order.stock_name', 'ASC')
       .addOrderBy('order.price', 'DESC');
 
@@ -57,12 +62,18 @@ export class OrderBookRepository {
       orderBooks.andWhere('order.side = :side', { side });
     }
     if (stockName) {
-      orderBooks.andWhere('order.stock_name = :stockName', { stockName });
+      orderBooks.andWhere('order.stock_name ILIKE :stockName', {
+        stockName: `%${stockName}%`,
+      });
     }
 
-    return await orderBooks.getRawMany();
+    const result: OrderBookRaw[] = await orderBooks.getRawMany();
+    return result;
   }
-  async getOrderById(id: string, userId: string) {
+  async getOrderById(
+    id: string,
+    userId: string,
+  ): Promise<OrderBookEntity | null> {
     const order = this.orderBookEntity
       .createQueryBuilder('order')
       .where({ id })
@@ -74,7 +85,7 @@ export class OrderBookRepository {
     userId: string,
     stockName?: string,
     side?: OrderSideEnum,
-  ) {
+  ): Promise<OrderBookEntity[]> {
     const orders = this.orderBookEntity
       .createQueryBuilder('order')
       .leftJoin('order.user', 'user')
@@ -83,14 +94,19 @@ export class OrderBookRepository {
       .orderBy('order.auditInfo.createdAt', 'DESC');
 
     if (stockName)
-      orders.andWhere('order.stock_name = :stockName', { stockName });
+      orders.andWhere('order.stock_name ILIKE :stockName', {
+        stockName: `%${stockName}%`,
+      });
 
     if (side) orders.andWhere('order.side = :side', { side });
 
     return orders.getMany();
   }
 
-  async getOrderList(userId: string, data?: CreateOrderBookReqDto) {
+  async getOrderList(
+    userId: string,
+    data?: CreateOrderBookReqDto,
+  ): Promise<OrderBookEntity[]> {
     const query = this.orderBookEntity
       .createQueryBuilder('order')
       .leftJoinAndSelect('order.user', 'user')

@@ -1,44 +1,47 @@
-import { IsEnum, IsNumber, IsPositive, MaxLength, Min } from 'class-validator';
+import { IsEnum, IsPositive, MaxLength, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import { IsNotBlank } from '../../../utils/decorators';
 import { OrderSideEnum } from '../../../core/config';
 
 export class CreateOrderBookReqDto {
   @IsNotBlank()
   @MaxLength(255)
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.toLowerCase() : value,
+  )
   @ApiProperty({
-    example: 'Apple',
+    example: 'apple',
     maxLength: 255,
-    required: false,
   })
-  stockName?: string;
+  stockName: string;
 
   @IsEnum(OrderSideEnum)
   @ApiProperty({
     example: OrderSideEnum.BUY,
     enum: OrderSideEnum,
-    required: false,
   })
-  side?: OrderSideEnum;
+  side: OrderSideEnum;
 
-  @Type(() => Number)
-  @IsNumber()
+  // @IsNumberString({ no_symbols: true }, { message: 'Quantity must be a numeric string' })
+  @Transform(({ value }) => Number(value))
   @Min(1)
   @ApiProperty({
-    example: 100,
-    required: false,
+    example: '100',
+    description: 'Quantity as a numeric string',
     minimum: 1,
+    type: String,
   })
-  quantity?: number;
+  quantity: number;
 
-  @Type(() => Number)
-  @IsNumber()
-  @IsPositive()
+  // @IsNumberString({}, { message: 'Price must be a valid number string' })
+  @Transform(({ value }) => Number(value))
+  @IsPositive({ message: 'Price must be positive' })
   @ApiProperty({
-    example: 150.5,
-    required: false,
+    example: '150.5',
+    description: 'Price as a numeric string',
     minimum: 0.01,
+    type: String,
   })
-  price?: number;
+  price: number;
 }

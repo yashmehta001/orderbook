@@ -7,6 +7,7 @@ export const winston = createLogger({
     timestamp(),
     colorize({ level: true, message: true }),
     printf(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       (info: any) => `[${info.timestamp}] : ${info.level}: ${info.message}`,
     ),
   ),

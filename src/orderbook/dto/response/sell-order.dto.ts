@@ -12,7 +12,7 @@ export class TradeDto {
   sellUserId: string;
 
   @Expose()
-  @ApiProperty({ example: 'Apple' })
+  @ApiProperty({ example: 'apple' })
   stockName: string;
 
   @Expose()
@@ -30,7 +30,7 @@ export class RemainingOrderDto {
   id: string;
 
   @Expose()
-  @ApiProperty({ example: 'Apple' })
+  @ApiProperty({ example: 'apple' })
   stockName: string;
 
   @Expose()

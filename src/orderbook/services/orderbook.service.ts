@@ -26,7 +26,10 @@ export class OrderbookService {
 
   static logInfo = 'Service - OrderBook:';
 
-  async createOrder(userId: string, orderInfo: CreateOrderBookReqDto) {
+  async createOrder(
+    userId: string,
+    orderInfo: CreateOrderBookReqDto,
+  ): Promise<OrderBookEntity> {
     try {
       this.logger.info(
         `${OrderbookService.logInfo} Create Order for userId: ${userId}`,
@@ -37,6 +40,7 @@ export class OrderbookService {
       );
       return order;
     } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this.logger.warn(`${OrderbookService.logInfo} ${error.message}`);
       throw error;
     }
@@ -64,7 +68,7 @@ export class OrderbookService {
       rawOrderBooks.forEach((row) => {
         const side = row.side as OrderSideEnum;
         grouped[side].push({
-          price: parseFloat(row.price),
+          price: row.price,
           quantity: parseInt(row.quantity),
           stockName: row.stockName,
         });
@@ -74,6 +78,7 @@ export class OrderbookService {
       );
       return grouped;
     } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this.logger.warn(`${OrderbookService.logInfo} ${error.message}`);
       throw error;
     }
@@ -83,7 +88,7 @@ export class OrderbookService {
     userId: string,
     side?: OrderSideEnum,
     stockName?: string,
-  ) {
+  ): Promise<OrderBookEntity[]> {
     try {
       this.logger.info(
         `${OrderbookService.logInfo} Fetching Orders for userId: ${userId}`,
@@ -98,12 +103,13 @@ export class OrderbookService {
       );
       return orders;
     } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this.logger.warn(`${OrderbookService.logInfo} ${error.message}`);
       throw error;
     }
   }
 
-  async deleteOrder(userId: string, id: string) {
+  async deleteOrder(userId: string, id: string): Promise<void> {
     try {
       this.logger.info(
         `${OrderbookService.logInfo} Deleting Order id: ${id} for userId: ${userId}`,
@@ -122,13 +128,13 @@ export class OrderbookService {
       return;
     } catch (error) {
       this.logger.warn(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         `${OrderbookService.logInfo} ${error.message} for id: ${id}`,
       );
       throw error;
     }
   }
 
-  // ToDo: Add transactions
   async sellOrder(userId: string, orderInfo: CreateSellOrderReqDto) {
     this.logInit('SELL', userId, orderInfo);
     const queryRunner = this.dataSource.createQueryRunner();
@@ -179,7 +185,8 @@ export class OrderbookService {
       };
     } catch (error) {
       this.logger.warn(
-        `${OrderbookService.logInfo} ${error.message} for userId: ${userId} payload: ${orderInfo}`,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        `${OrderbookService.logInfo} ${error.message} for userId: ${userId} payload: ${JSON.stringify(orderInfo)}`,
       );
       await queryRunner.rollbackTransaction();
       throw error;
@@ -245,7 +252,8 @@ export class OrderbookService {
       };
     } catch (error) {
       this.logger.warn(
-        `${OrderbookService.logInfo} ${error.message} for userId: ${userId} payload: ${orderInfo}`,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        `${OrderbookService.logInfo} ${error.message} for userId: ${userId} payload: ${JSON.stringify(orderInfo)}`,
       );
       await queryRunner.rollbackTransaction();
       throw error;
@@ -272,6 +280,7 @@ export class OrderbookService {
       return funds + updateFunds + pledged >= 0;
     } catch (error) {
       this.logger.warn(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         `${OrderbookService.logInfo} ${error.message} for userId: ${userId} payload: ${updateFunds}`,
       );
       throw error;
@@ -443,7 +452,7 @@ export class OrderbookService {
 
   private async processFundsForSell(
     sellerId: string,
-    trades: any[],
+    trades: { buyerId: string; quantity: number; price: number }[],
     price: number,
     manager: EntityManager,
   ) {
@@ -472,7 +481,8 @@ export class OrderbookService {
     for (const { sellerId, quantity, price } of trades) {
       const total = quantity * price;
       buyerDebit -= total;
-      sellerCredits[sellerId] = (sellerCredits[sellerId] || 0) + total;
+      const sellerKey: string = String(sellerId);
+      sellerCredits[sellerKey] = (sellerCredits[sellerKey] || 0) + total;
     }
 
     await this.userService.updateFunds(buyerId, buyerDebit, manager);
@@ -501,7 +511,10 @@ export class OrderbookService {
     );
   }
 
-  private summarizeTrades(trades: any[]) {
+  private summarizeTrades(trades: { quantity: number; price: number }[]): {
+    totalQuantity: number;
+    totalFunds: number;
+  } {
     return {
       totalQuantity: trades.reduce((sum, t) => sum + t.quantity, 0),
       totalFunds: trades.reduce((sum, t) => sum + t.quantity * t.price, 0),
@@ -510,6 +523,7 @@ export class OrderbookService {
 
   private logInit(type: 'BUY' | 'SELL', userId: string, info: any) {
     this.logger.info(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       `${OrderbookService.logInfo} ${type} order init | userId=${userId} | stock=${info.stockName} | qty=${info.quantity} | price=${info.price}`,
     );
   }
@@ -521,6 +535,7 @@ export class OrderbookService {
     remaining: number,
   ) {
     this.logger.info(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       `${OrderbookService.logInfo} ${type} order complete | userId=${userId} | filled=${info.quantity - remaining} | remaining=${remaining}`,
     );
   }

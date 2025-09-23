@@ -45,7 +45,7 @@ export class OrderbookController {
       'for more information please check CreateSellOrderResDto schema',
   })
   @ApiCreatedResponse({
-    description: 'sell Orders created successfully',
+    description: 'Sell Orders created successfully',
     type: CreateSellOrderResDto,
   })
   @ApiBadRequestResponse({
@@ -67,7 +67,7 @@ export class OrderbookController {
       'for more information please check CreateBuyOrderResDto schema',
   })
   @ApiCreatedResponse({
-    description: 'buy Order created successfully',
+    description: 'Buy Orders created successfully',
     type: CreateBuyOrderResDto,
   })
   @ApiBadRequestResponse({
@@ -82,7 +82,6 @@ export class OrderbookController {
     return this.orderBookService.buyOrder(user.id, body);
   }
 
-  @Get('/')
   @ApiBearerAuth()
   @Serialize(GetUserOrderBookResDto)
   @ApiResponse({
@@ -90,12 +89,13 @@ export class OrderbookController {
       'for more information please check GetUserOrderBookResDto schema',
   })
   @ApiOkResponse({
-    description: 'User order book by stock and side',
+    description: 'Get pending user order book. Filter by stock and side',
     type: GetUserOrderBookResDto,
   })
   @ApiBadRequestResponse({
     description: 'Bad Request',
   })
+  @Get('/')
   async getUserOrderBooks(
     @AuthUser() user: UserProfileReqDto,
     @Query() query: GetOrderBooksReqDto,
@@ -107,19 +107,19 @@ export class OrderbookController {
     );
   }
 
-  @Delete('/:id')
-  @ApiBearerAuth()
   @Serialize({}, 'Order deleted successfully')
+  @ApiBearerAuth()
   @ApiResponse({
     description:
       'for more information please check GetUserOrderBookResDto schema',
   })
   @ApiNoContentResponse({
-    description: 'order deleted successfully',
+    description: 'Pending trade order deleted successfully',
   })
   @ApiBadRequestResponse({
     description: 'Bad Request',
   })
+  @Delete('/:id')
   async deleteOrderFromOrderBooks(
     @AuthUser() user: UserProfileReqDto,
     @Param('id') orderId: string,
@@ -134,7 +134,7 @@ export class OrderbookController {
     description: 'for more information please check GetOrderBooksResDto schema',
   })
   @ApiOkResponse({
-    description: 'Aggregated order book by stock and side',
+    description: 'Aggregated pending order book by stock and side',
     type: CreateOrderBookResDto,
   })
   @ApiBadRequestResponse({
