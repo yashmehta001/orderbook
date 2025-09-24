@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { LoggerService } from '../../../utils/logger/WinstonLogger';
-import { mockOrderHistoryRepository } from '../mocks/orderHistory.repository.mock';
 import { OrderHistoryService } from '../../../orderHistory/services/orderHistory.service';
 import { OrderHistoryRepository } from '../../../orderHistory/repository/orderHistory.repository';
 import {
@@ -11,6 +10,7 @@ import {
 } from '../constants';
 import { CreateOrderHistoryDto } from '../../../orderHistory/dto';
 import { userOutput } from '../../../users/tests/constants';
+import { mockOrderHistoryRepository } from '../mocks';
 
 describe('OrderHistoryService', () => {
   let orderHistoryService: OrderHistoryService;
