@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrderbookController } from '../../orderbook.controller';
 import { OrderbookService } from '../../services/orderbook.service';
-import { mockOrderService } from '../mocks';
+import { mockOrderBookService } from '../mocks';
 import {
   mockCreateSellOrderResponse,
   mockCreateSellOrderRequest,
@@ -23,7 +23,7 @@ describe('Orderbook Controller', () => {
         OrderbookController,
         {
           provide: OrderbookService,
-          useFactory: mockOrderService,
+          useFactory: mockOrderBookService,
         },
       ],
     }).compile();
