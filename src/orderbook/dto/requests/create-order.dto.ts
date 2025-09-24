@@ -23,7 +23,6 @@ export class CreateOrderBookReqDto {
   })
   side: OrderSideEnum;
 
-  // @IsNumberString({ no_symbols: true }, { message: 'Quantity must be a numeric string' })
   @Transform(({ value }) => Number(value))
   @Min(1)
   @ApiProperty({
@@ -34,7 +33,6 @@ export class CreateOrderBookReqDto {
   })
   quantity: number;
 
-  // @IsNumberString({}, { message: 'Price must be a valid number string' })
   @Transform(({ value }) => Number(value))
   @IsPositive({ message: 'Price must be positive' })
   @ApiProperty({

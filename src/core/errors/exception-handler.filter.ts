@@ -15,18 +15,19 @@ export class ExceptionHandlerFilter<T extends HttpException>
     const response = ctx.getResponse<Response>();
     const status = exception.getStatus();
     const exceptionResponse = exception.getResponse();
-    const error =
-      typeof response === 'string'
+    type ErrorResponse = { message?: string | string[] };
+    const error: ErrorResponse =
+      typeof exceptionResponse === 'string'
         ? { message: exceptionResponse }
-        : (exceptionResponse as object);
+        : (exceptionResponse as ErrorResponse);
 
     const err =
       error &&
       typeof error === 'object' &&
-      'message' in error &&
+      error.message &&
       Array.isArray(error.message)
         ? error.message[0]
-        : error;
+        : (error.message ?? error);
     response.status(status).json({
       Error: true,
       message: [err],

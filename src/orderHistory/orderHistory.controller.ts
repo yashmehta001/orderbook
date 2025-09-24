@@ -28,10 +28,10 @@ export class OrderHistoryController {
     type: OrderHistoryTransactionResDto,
   })
   @ApiBadRequestResponse({
-    description: 'when history is not found',
+    description: 'when trade history is not found',
   })
   @ApiBearerAuth()
-  @Get('')
+  @Get('/')
   async history(@AuthUser() user: UserProfileReqDto) {
     return this.orderHistoryService.getOrderHistoryByUserId(user.id);
   }

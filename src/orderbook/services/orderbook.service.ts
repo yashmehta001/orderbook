@@ -2,7 +2,7 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { OrderBookRepository } from '../repository/orderBook.repository';
 import { LoggerService } from '../../utils/logger/WinstonLogger';
 import { CreateBuyOrderReqDto, CreateOrderBookReqDto } from '../dto';
-import { OrderSideEnum } from '../../core/config';
+import { errorMessages, OrderSideEnum } from '../../core/config';
 import { CreateSellOrderReqDto } from '../dto/requests/sell-order.dto';
 import { OrderBookEntity } from '../entities/orderbook.entity';
 import { UserService } from '../../users/services/users.service';
@@ -10,8 +10,35 @@ import { OrderHistoryService } from '../../orderHistory/services/orderHistory.se
 import { v4 as uuid } from 'uuid';
 import { CustomError, NotFoundException } from '../../core/errors';
 import { DataSource, EntityManager } from 'typeorm';
+
+export interface IOrderbookService {
+  createOrder(
+    userId: string,
+    orderInfo: CreateOrderBookReqDto,
+  ): Promise<OrderBookEntity>;
+
+  getOrderBooks(
+    userId: string,
+    stockName?: string,
+    side?: OrderSideEnum,
+  ): Promise<{ BUY: any[]; SELL: any[] }>;
+
+  getOrdersByUserId(
+    userId: string,
+    side?: OrderSideEnum,
+    stockName?: string,
+  ): Promise<OrderBookEntity[]>;
+
+  deleteOrder(userId: string, id: string): Promise<void>;
+
+  sellOrder(userId: string, orderInfo: CreateSellOrderReqDto): Promise<any>;
+
+  buyOrder(userId: string, orderInfo: CreateBuyOrderReqDto): Promise<any>;
+
+  validateBalance(userId: string, updateFunds: number): Promise<boolean>;
+}
 @Injectable()
-export class OrderbookService {
+export class OrderbookService implements IOrderbookService {
   constructor(
     @Inject(OrderBookRepository)
     private readonly orderBookRepository: OrderBookRepository,
@@ -209,7 +236,7 @@ export class OrderbookService {
           -orderInfo.price * orderInfo.quantity,
         ))
       ) {
-        throw new CustomError('Insufficient Balance');
+        throw new CustomError(errorMessages.INSUFFICIENT_BALANCE);
       }
 
       const existingSellOrders = await this.orderBookRepository.getOrderList(
@@ -487,9 +514,11 @@ export class OrderbookService {
 
     await this.userService.updateFunds(buyerId, buyerDebit, manager);
 
-    for (const [sellerId, delta] of Object.entries(sellerCredits)) {
-      await this.userService.updateFunds(sellerId, delta, manager);
-    }
+    await Promise.all(
+      Object.entries(sellerCredits).map(([sellerId, delta]) => {
+        return this.userService.updateFunds(sellerId, delta, manager);
+      }),
+    );
   }
 
   private async recordOrderHistory(
@@ -499,7 +528,6 @@ export class OrderbookService {
     totalQuantity: number,
     manager: EntityManager,
   ) {
-    if (totalQuantity <= 0) return;
     await this.orderHistoryService.createOrderHistory(
       {
         id: orderId ?? uuid(),

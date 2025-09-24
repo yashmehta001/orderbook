@@ -32,24 +32,25 @@ import {
   GetUserOrderBookResDto,
 } from './dto';
 import { CreateSellOrderReqDto } from './dto/requests/sell-order.dto';
+import { errorMessages, successMessages } from 'src/core/config';
 
 @ApiTags('Orderbook')
 @Controller('orderbook')
 export class OrderbookController {
   constructor(private readonly orderBookService: OrderbookService) {}
 
-  @Serialize(CreateSellOrderResDto, 'Sell Order created successfully')
+  @Serialize(CreateSellOrderResDto, successMessages.SELL_ORDER_CREATED)
   @ApiBearerAuth()
   @ApiResponse({
     description:
       'for more information please check CreateSellOrderResDto schema',
   })
   @ApiCreatedResponse({
-    description: 'Sell Orders created successfully',
+    description: successMessages.SELL_ORDER_CREATED,
     type: CreateSellOrderResDto,
   })
   @ApiBadRequestResponse({
-    description: 'Bad Request',
+    description: errorMessages.BAD_REQUEST,
   })
   @HttpCode(HttpStatus.CREATED)
   @Post('/sell-order')
@@ -60,18 +61,18 @@ export class OrderbookController {
     return this.orderBookService.sellOrder(user.id, body);
   }
 
-  @Serialize(CreateBuyOrderResDto, 'Buy Order created successfully')
+  @Serialize(CreateBuyOrderResDto, successMessages.BUY_ORDER_CREATED)
   @ApiBearerAuth()
   @ApiResponse({
     description:
       'for more information please check CreateBuyOrderResDto schema',
   })
   @ApiCreatedResponse({
-    description: 'Buy Orders created successfully',
+    description: successMessages.BUY_ORDER_CREATED,
     type: CreateBuyOrderResDto,
   })
   @ApiBadRequestResponse({
-    description: 'Bad Request',
+    description: errorMessages.BAD_REQUEST,
   })
   @HttpCode(HttpStatus.CREATED)
   @Post('/buy-order')
@@ -89,13 +90,14 @@ export class OrderbookController {
       'for more information please check GetUserOrderBookResDto schema',
   })
   @ApiOkResponse({
-    description: 'Get pending user order book. Filter by stock and side',
+    description:
+      "Returns a list of pending trades from the user's order book. Supports optional filtering by stock symbol and order side (buy/sell).",
     type: GetUserOrderBookResDto,
   })
   @ApiBadRequestResponse({
-    description: 'Bad Request',
+    description: errorMessages.BAD_REQUEST,
   })
-  @Get('/')
+  @Get('/pending-orders')
   async getUserOrderBooks(
     @AuthUser() user: UserProfileReqDto,
     @Query() query: GetOrderBooksReqDto,
@@ -107,19 +109,19 @@ export class OrderbookController {
     );
   }
 
-  @Serialize({}, 'Order deleted successfully')
+  @Serialize({}, successMessages.ORDER_CANCELLED)
   @ApiBearerAuth()
   @ApiResponse({
     description:
       'for more information please check GetUserOrderBookResDto schema',
   })
   @ApiNoContentResponse({
-    description: 'Pending trade order deleted successfully',
+    description: 'Successfully deleted the pending trade order.',
   })
   @ApiBadRequestResponse({
-    description: 'Bad Request',
+    description: errorMessages.BAD_REQUEST,
   })
-  @Delete('/:id')
+  @Delete('/pending-orders/:id')
   async deleteOrderFromOrderBooks(
     @AuthUser() user: UserProfileReqDto,
     @Param('id') orderId: string,
@@ -134,11 +136,12 @@ export class OrderbookController {
     description: 'for more information please check GetOrderBooksResDto schema',
   })
   @ApiOkResponse({
-    description: 'Aggregated pending order book by stock and side',
+    description:
+      'Get the aggregated current order book, grouped by stock and side.',
     type: CreateOrderBookResDto,
   })
   @ApiBadRequestResponse({
-    description: 'Bad Request',
+    description: errorMessages.BAD_REQUEST,
   })
   async getOrderBooks(
     @AuthUser() user: UserProfileReqDto,

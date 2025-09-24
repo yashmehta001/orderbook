@@ -12,9 +12,15 @@ import {
 import { LoggerService } from '../../utils/logger/WinstonLogger';
 import { EntityManager, QueryFailedError } from 'typeorm';
 import { OrderbookService } from '../../orderbook/services/orderbook.service';
-
+import { errorMessages } from 'src/core/config/messages';
+export interface IUserService {
+  createUser(data: UserCreateReqDto): Promise<{ user: any; token: string }>;
+  loginUser(data: UserLoginReqDto): Promise<{ user: any; token: string }>;
+  profile(id: string): Promise<any>;
+  updateFunds(id: string, funds: number, manager?: EntityManager): Promise<any>;
+}
 @Injectable()
-export class UserService {
+export class UserService implements IUserService {
   constructor(
     @Inject(UserRepository)
     private readonly userRepository: UserRepository,
@@ -71,7 +77,7 @@ export class UserService {
       const user = await this.userRepository.getByEmail(data.email);
       if (!user) {
         throw new CustomError(
-          `Incorrect Email or Password`,
+          errorMessages.INCORRECT_CREDENTIALS,
           HttpStatus.UNAUTHORIZED,
         );
       }
@@ -81,7 +87,7 @@ export class UserService {
       );
       if (!isEqual) {
         throw new CustomError(
-          `Incorrect Email or Password`,
+          errorMessages.INCORRECT_CREDENTIALS,
           HttpStatus.UNAUTHORIZED,
         );
       }
@@ -133,7 +139,10 @@ export class UserService {
     );
     try {
       if (!(await this.orderBookService.validateBalance(id, funds)))
-        throw new CustomError('Insufficient Balance');
+        throw new CustomError(
+          errorMessages.INSUFFICIENT_BALANCE,
+          HttpStatus.BAD_REQUEST,
+        );
 
       const user = await this.userRepository.getById(id);
       if (!user) {

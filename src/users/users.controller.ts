@@ -32,6 +32,7 @@ import { UserService } from './services/users.service';
 import { AuthType } from '../utils/token/types';
 import { Auth } from '../utils/authentication/decorator';
 import { AuthUser } from '../utils/decorators';
+import { errorMessages, successMessages } from 'src/core/config';
 
 @ApiTags('User')
 @Controller('user')
@@ -39,17 +40,17 @@ export class UsersController {
   constructor(private readonly userService: UserService) {}
 
   @Auth(AuthType.None)
-  @Serialize(UserLoginResDto, 'User Created')
+  @Serialize(UserLoginResDto, successMessages.USER_CREATED)
   @ApiResponse({
     description: 'for more information please check UserCreateReqDto schema',
   })
   @ApiCreatedResponse({
     description:
-      'When user registration successfully then this response will receive',
+      'This response is returned when user registration is successful.',
     type: UserLoginResDto,
   })
   @ApiConflictResponse({
-    description: 'when user email is already taken',
+    description: 'Returned when the user email is already taken.',
   })
   @HttpCode(HttpStatus.CREATED)
   @Post('/signup')
@@ -58,17 +59,17 @@ export class UsersController {
   }
 
   @Auth(AuthType.None)
-  @Serialize(UserLoginResDto)
+  @Serialize(UserLoginResDto, successMessages.USER_LOGGED_IN)
   @ApiResponse({
     description: 'for more information please check UserLoginReqDto schema',
   })
   @ApiOkResponse({
-    description: 'When user login successfully then this response will receive',
+    description: 'This response is returned upon successful user login.',
     type: UserLoginResDto,
   })
   @ApiUnauthorizedResponse({
     description:
-      'when user email or password is incorrect, email not found or user account is ban from admin',
+      'This response is returned if the email or password is incorrect, the email does not exist, or the user account has been banned by an administrator or does not exist.',
   })
   @HttpCode(HttpStatus.OK)
   @Post('/login')
@@ -82,11 +83,11 @@ export class UsersController {
   })
   @ApiOkResponse({
     description:
-      'When user profile is successfully retrieved then this response will receive',
+      'This response is returned when user profile is successfully retrieved.',
     type: UserProfileResDto,
   })
   @ApiNotFoundResponse({
-    description: 'when user not found',
+    description: 'This response is returned when user is not found.',
   })
   @ApiBearerAuth()
   @Get('/profile')
@@ -94,7 +95,7 @@ export class UsersController {
     return this.userService.profile(user.id);
   }
 
-  @Serialize(UserProfileResDto, 'Funds successfully updated')
+  @Serialize(UserProfileResDto, successMessages.FUND_UPDATED)
   @ApiResponse({
     description: 'for more information please check ManageFundsReqDto schema',
   })
@@ -103,10 +104,10 @@ export class UsersController {
     type: UserProfileResDto,
   })
   @ApiBadRequestResponse({
-    description: 'insufficient funds',
+    description: errorMessages.INSUFFICIENT_BALANCE,
   })
   @ApiNotFoundResponse({
-    description: 'when user not found',
+    description: errorMessages.USER_NOT_FOUND,
   })
   @ApiBearerAuth()
   @Put('/update-funds')

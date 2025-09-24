@@ -9,7 +9,7 @@ interface OrderBookRaw {
   side: string;
   stockName: string;
   price: number;
-  quantity: string; // or number if casted
+  quantity: string;
 }
 @Injectable()
 export class OrderBookRepository {
@@ -113,13 +113,8 @@ export class OrderBookRepository {
       .where('user.id != :userId', { userId });
 
     if (data?.side && data?.price !== undefined && data?.stockName) {
-      const oppositeSide =
-        data.side === OrderSideEnum.BUY
-          ? OrderSideEnum.SELL
-          : OrderSideEnum.BUY;
-
       query
-        .andWhere('order.side = :side', { side: oppositeSide })
+        .andWhere('order.side != :side', { side: data.side })
         .andWhere('order.stock_name = :stockName', {
           stockName: data.stockName,
         })

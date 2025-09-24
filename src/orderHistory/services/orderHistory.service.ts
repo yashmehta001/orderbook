@@ -5,8 +5,18 @@ import { CreateOrderHistoryDto } from '../dto/request/createHistory.dto';
 import { OrderHistoryItemDto, OrderHistoryTransactionResDto } from '../dto';
 import { EntityManager } from 'typeorm';
 
+export interface IOrderHistoryService {
+  createOrderHistory(
+    orderInfo: CreateOrderHistoryDto,
+    manager?: EntityManager,
+  ): Promise<any>;
+
+  getOrderHistoryByUserId(
+    userId: string,
+  ): Promise<OrderHistoryTransactionResDto[]>;
+}
 @Injectable()
-export class OrderHistoryService {
+export class OrderHistoryService implements IOrderHistoryService {
   constructor(
     @Inject(OrderHistoryRepository)
     private readonly orderHistoryRepository: OrderHistoryRepository,

@@ -49,7 +49,7 @@ export class UserCreateReqDto {
   })
   password: string;
 
-  @Type(() => Number) // ✅ ensures "100" -> 100
+  @Type(() => Number)
   @IsNumber({}, { message: 'Funds must be a valid number' })
   @Min(0, { message: 'Funds cannot be negative' })
   @ApiProperty({
