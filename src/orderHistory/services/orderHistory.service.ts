@@ -4,6 +4,7 @@ import { OrderHistoryRepository } from '../repository/orderHistory.repository';
 import { CreateOrderHistoryDto } from '../dto/request/createHistory.dto';
 import { OrderHistoryItemDto, OrderHistoryTransactionResDto } from '../dto';
 import { EntityManager } from 'typeorm';
+import { OrderHistoryEntity } from '../entities/orderHistory.entity';
 
 export interface IOrderHistoryService {
   createOrderHistory(
@@ -26,9 +27,8 @@ export class OrderHistoryService implements IOrderHistoryService {
   async createOrderHistory(
     orderInfo: CreateOrderHistoryDto,
     manager?: EntityManager,
-  ): Promise<any> {
+  ): Promise<OrderHistoryEntity> {
     try {
-      if (!orderInfo.quantity || orderInfo.quantity <= 0) return;
       this.logger.info(
         `${OrderHistoryService.logInfo} Creating order history for user ${orderInfo.user.id}`,
       );

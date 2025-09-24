@@ -32,7 +32,7 @@ import {
   GetUserOrderBookResDto,
 } from './dto';
 import { CreateSellOrderReqDto } from './dto/requests/sell-order.dto';
-import { errorMessages, successMessages } from 'src/core/config';
+import { errorMessages, successMessages } from '../core/config';
 
 @ApiTags('Orderbook')
 @Controller('orderbook')

@@ -32,7 +32,8 @@ import { UserService } from './services/users.service';
 import { AuthType } from '../utils/token/types';
 import { Auth } from '../utils/authentication/decorator';
 import { AuthUser } from '../utils/decorators';
-import { errorMessages, successMessages } from 'src/core/config';
+import { errorMessages, successMessages } from '../core/config';
+import { UserEntity } from './entities';
 
 @ApiTags('User')
 @Controller('user')
@@ -54,7 +55,7 @@ export class UsersController {
   })
   @HttpCode(HttpStatus.CREATED)
   @Post('/signup')
-  async signUp(@Body() body: UserCreateReqDto) {
+  async signUp(@Body() body: UserCreateReqDto): Promise<UserLoginResDto> {
     return this.userService.createUser(body);
   }
 
@@ -73,7 +74,7 @@ export class UsersController {
   })
   @HttpCode(HttpStatus.OK)
   @Post('/login')
-  async login(@Body() body: UserLoginReqDto) {
+  async login(@Body() body: UserLoginReqDto): Promise<UserLoginResDto> {
     return this.userService.loginUser(body);
   }
 
@@ -91,7 +92,9 @@ export class UsersController {
   })
   @ApiBearerAuth()
   @Get('/profile')
-  async profile(@AuthUser() user: UserProfileReqDto) {
+  async profile(
+    @AuthUser() user: UserProfileReqDto,
+  ): Promise<UserEntity | null> {
     return this.userService.profile(user.id);
   }
 
@@ -114,7 +117,7 @@ export class UsersController {
   async updateFunds(
     @AuthUser() user: UserProfileReqDto,
     @Body() body: ManageFundsReqDto,
-  ) {
+  ): Promise<UserEntity | null> {
     return this.userService.updateFunds(user.id, body.funds);
   }
 }

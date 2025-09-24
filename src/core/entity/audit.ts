@@ -22,6 +22,7 @@ export class AuditInfo {
   @DeleteDateColumn({
     name: 'deleted_at',
     type: 'timestamp without time zone',
+    nullable: true,
   })
-  deletedAt: Date;
+  deletedAt?: Date;
 }

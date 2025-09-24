@@ -4,7 +4,7 @@ import { Request } from 'express';
 import { REQUEST_USER_KEY, UserType } from '../../token/types';
 import { UnauthorizedException } from '../errors';
 import { ConfigService } from '@nestjs/config';
-import { UserProfileReqDto } from 'src/users/dto';
+import { UserProfileReqDto } from '../../../users/dto';
 
 @Injectable()
 export class UserAccessTokenGuard implements CanActivate {
