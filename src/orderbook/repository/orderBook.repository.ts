@@ -11,8 +11,43 @@ interface OrderBookRaw {
   price: number;
   quantity: string;
 }
+
+export interface IOrderBookRepository {
+  save(
+    userId: string,
+    orderInfos: CreateOrderBookReqDto,
+    manager?: EntityManager,
+    id?: string,
+  ): Promise<OrderBookEntity>;
+
+  getOrderBooks(
+    userId: string,
+    stockName?: string,
+    side?: OrderSideEnum,
+  ): Promise<any[]>;
+
+  getOrderById(id: string, userId: string): Promise<OrderBookEntity | null>;
+
+  getOrdersByUserId(
+    userId: string,
+    stockName?: string,
+    side?: OrderSideEnum,
+  ): Promise<OrderBookEntity[]>;
+
+  getOrderList(
+    userId: string,
+    data?: CreateOrderBookReqDto,
+  ): Promise<OrderBookEntity[]>;
+
+  bulkRemoveOrders(orderIds: string[], manager?: EntityManager): Promise<void>;
+
+  bulkUpdateQuantities(
+    updates: { id: string; quantity: number }[],
+    manager?: EntityManager,
+  ): Promise<void>;
+}
 @Injectable()
-export class OrderBookRepository {
+export class OrderBookRepository implements IOrderBookRepository {
   constructor(
     @InjectRepository(OrderBookEntity)
     private readonly orderBookEntity: Repository<OrderBookEntity>,

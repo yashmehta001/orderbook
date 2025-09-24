@@ -244,7 +244,7 @@ export class OrderbookService implements IOrderbookService {
         orderInfo,
       );
 
-      const id = uuid();
+      const id: string = uuid();
       const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
         await this.matchOrders({
           initiatorId: userId,
@@ -441,7 +441,7 @@ export class OrderbookService implements IOrderbookService {
         {
           ...orderInfo,
           user: { id: initiatorId },
-          id: orderId ?? uuid(),
+          id: (orderId as string) ?? uuid(),
           quantity,
           price: opposite.price,
         },
@@ -530,7 +530,7 @@ export class OrderbookService implements IOrderbookService {
   ) {
     await this.orderHistoryService.createOrderHistory(
       {
-        id: orderId ?? uuid(),
+        id: (orderId as string) ?? uuid(),
         ...orderInfo,
         user: { id: userId },
         quantity: totalQuantity,

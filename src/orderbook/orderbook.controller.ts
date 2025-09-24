@@ -30,9 +30,13 @@ import {
   GetOrderBooksReqDto,
   GetOrderBooksResDto,
   GetUserOrderBookResDto,
+  IBuyTrade,
+  IOrderBook,
+  ISellTrade,
 } from './dto';
 import { CreateSellOrderReqDto } from './dto/requests/sell-order.dto';
 import { errorMessages, successMessages } from '../core/config';
+import { OrderBookEntity } from './entities/orderbook.entity';
 
 @ApiTags('Orderbook')
 @Controller('orderbook')
@@ -57,7 +61,7 @@ export class OrderbookController {
   async sellOrder(
     @AuthUser() user: UserProfileReqDto,
     @Body() body: CreateSellOrderReqDto,
-  ) {
+  ): Promise<ISellTrade> {
     return this.orderBookService.sellOrder(user.id, body);
   }
 
@@ -79,7 +83,7 @@ export class OrderbookController {
   async buyOrder(
     @AuthUser() user: UserProfileReqDto,
     @Body() body: CreateBuyOrderReqDto,
-  ) {
+  ): Promise<IBuyTrade> {
     return this.orderBookService.buyOrder(user.id, body);
   }
 
@@ -101,7 +105,7 @@ export class OrderbookController {
   async getUserOrderBooks(
     @AuthUser() user: UserProfileReqDto,
     @Query() query: GetOrderBooksReqDto,
-  ) {
+  ): Promise<OrderBookEntity[]> {
     return this.orderBookService.getOrdersByUserId(
       user.id,
       query.side,
@@ -125,7 +129,7 @@ export class OrderbookController {
   async deleteOrderFromOrderBooks(
     @AuthUser() user: UserProfileReqDto,
     @Param('id') orderId: string,
-  ) {
+  ): Promise<void> {
     return this.orderBookService.deleteOrder(user.id, orderId);
   }
 
@@ -146,7 +150,7 @@ export class OrderbookController {
   async getOrderBooks(
     @AuthUser() user: UserProfileReqDto,
     @Query() query: GetOrderBooksReqDto,
-  ) {
+  ): Promise<IOrderBook> {
     return this.orderBookService.getOrderBooks(
       user.id,
       query.stockName,
