@@ -32,7 +32,9 @@ export class OrderHistoryController {
   })
   @ApiBearerAuth()
   @Get('/')
-  async history(@AuthUser() user: UserProfileReqDto) {
+  async history(
+    @AuthUser() user: UserProfileReqDto,
+  ): Promise<OrderHistoryTransactionResDto[]> {
     return this.orderHistoryService.getOrderHistoryByUserId(user.id);
   }
 }

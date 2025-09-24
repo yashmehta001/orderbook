@@ -12,7 +12,7 @@ import {
 import { LoggerService } from '../../utils/logger/WinstonLogger';
 import { EntityManager, QueryFailedError } from 'typeorm';
 import { OrderbookService } from '../../orderbook/services/orderbook.service';
-import { errorMessages } from 'src/core/config/messages';
+import { errorMessages } from '../../core/config/messages';
 export interface IUserService {
   createUser(data: UserCreateReqDto): Promise<{ user: any; token: string }>;
   loginUser(data: UserLoginReqDto): Promise<{ user: any; token: string }>;

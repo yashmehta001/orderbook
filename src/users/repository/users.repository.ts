@@ -5,6 +5,16 @@ import { Repository } from 'typeorm/repository/Repository';
 import { UserCreateReqDto } from '../dto';
 import { EntityManager } from 'typeorm';
 
+export interface IUserRepository {
+  save(
+    userInfo: UserCreateReqDto,
+    manager?: EntityManager,
+  ): Promise<UserEntity>;
+
+  getByEmail(email: string): Promise<UserEntity | null>;
+
+  getById(id: string): Promise<UserEntity | null>;
+}
 @Injectable()
 export class UserRepository {
   constructor(
