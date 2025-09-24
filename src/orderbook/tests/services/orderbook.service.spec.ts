@@ -209,7 +209,7 @@ describe('OrderbookService', () => {
     it('should return true when funds + updateFunds + pledged >= 0', async () => {
       userService.profile.mockResolvedValueOnce(userOutput);
       orderbookService.getOrdersByUserId = jest.fn().mockResolvedValueOnce([
-        { price: 100, quantity: 2 }, // pledged = -200
+        { price: 100, quantity: 2 },
       ]);
 
       const result = await orderbookService.validateBalance(
@@ -231,7 +231,6 @@ describe('OrderbookService', () => {
         -1200,
       );
 
-      // funds (100) + updateFunds (-200) + pledged (-200) = -300 < 0
       expect(result).toBe(false);
     });
 
@@ -244,7 +243,6 @@ describe('OrderbookService', () => {
         -200,
       );
 
-      // funds (300) + updateFunds (-200) + pledged (0) = 100 >= 0
       expect(result).toBe(true);
     });
 
