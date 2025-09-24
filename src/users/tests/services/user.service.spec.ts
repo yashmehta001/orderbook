@@ -18,10 +18,8 @@ import {
 import { CustomError, NotFoundException } from '../../../core/errors';
 import { OrderbookService } from '../../../orderbook/services/orderbook.service';
 import { QueryFailedError } from 'typeorm';
+import { mockOrderBookService } from '../../../orderbook/tests/mocks';
 
-const mockOrderbookService = {
-  validateBalance: jest.fn().mockResolvedValue(true),
-};
 describe('UserService', () => {
   let userService: UserService;
   let userRepository: jest.Mocked<UserRepository>;
@@ -48,7 +46,7 @@ describe('UserService', () => {
         },
         {
           provide: OrderbookService,
-          useValue: mockOrderbookService,
+          useValue: mockOrderBookService(),
         },
       ],
     }).compile();
@@ -170,15 +168,6 @@ describe('UserService', () => {
 
       const result = await userService.updateFunds(existingUser.id, 500);
 
-      // expect(orderbookService.validateBalance).toHaveBeenCalledWith(
-      //   existingUser.id,
-      //   500,
-      // );
-      // expect(userRepository.getById).toHaveBeenCalledWith(existingUser.id);
-      // expect(userRepository.save).toHaveBeenCalledWith(
-      //   { ...existingUser, funds: 1500 },
-      //   undefined,
-      // );
       expect(result.funds).toBe(1500);
     });
 

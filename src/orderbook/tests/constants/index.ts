@@ -1,6 +1,7 @@
 import { OrderSideEnum } from '../../../core/config';
 import {
   CreateBuyOrderReqDto,
+  CreateOrderBookReqDto,
   CreateSellOrderReqDto,
   GetOrderBooksReqDto,
   IBuyTrade,
@@ -26,6 +27,12 @@ export const mockOrderBookData: OrderBookEntity = {
 export const mockCreateSellOrderRequest: CreateSellOrderReqDto = {
   stockName: 'apple',
   side: OrderSideEnum.SELL,
+  quantity: 3,
+  price: 300,
+};
+export const mockCreateOrderRequest: CreateOrderBookReqDto = {
+  stockName: 'apple',
+  side: OrderSideEnum.BUY,
   quantity: 3,
   price: 300,
 };
@@ -59,8 +66,8 @@ export const mockCreateBuyOrderResponse: IBuyTrade = {
     {
       buyOrderId: 'c212e0e8-aa57-46e8-86ea-782bc224e0fe',
       sellUserId: '48ede012-aa2c-4942-b4e0-f5cab919dc7a',
-      stockName: mockCreateSellOrderRequest.stockName,
-      price: mockCreateSellOrderRequest.price,
+      stockName: mockCreateBuyOrderRequest.stockName,
+      price: mockCreateBuyOrderRequest.price,
       quantity: 280,
     },
   ],
@@ -76,3 +83,17 @@ export const mockOrderBook: IOrderBook = {
   BUY: [{ price: 300, quantity: 3, stockName: 'apple' }],
   SELL: [{ price: 350, quantity: 3, stockName: 'apple' }],
 };
+export const mockRawOrders: any = [
+  {
+    price: 300,
+    quantity: '3',
+    stockName: 'apple',
+    side: OrderSideEnum.BUY,
+  },
+  {
+    price: 350,
+    quantity: '2',
+    stockName: 'apple',
+    side: OrderSideEnum.SELL,
+  },
+];

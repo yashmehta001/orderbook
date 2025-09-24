@@ -1,6 +1,6 @@
 import { IOrderBookRepository } from '../../repository/orderBook.repository';
 
-export const mockOrderRepository = (): IOrderBookRepository => ({
+export const mockOrderServiceRepository = (): IOrderBookRepository => ({
   save: jest.fn(),
   getOrderBooks: jest.fn(),
   getOrderById: jest.fn(),

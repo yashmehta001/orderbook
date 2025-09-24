@@ -1,6 +1,6 @@
 import { IOrderbookService } from '../../services/orderbook.service';
 
-export const mockOrderService = (): IOrderbookService => ({
+export const mockOrderBookService = (): IOrderbookService => ({
   createOrder: jest.fn(),
   getOrderBooks: jest.fn(),
   getOrdersByUserId: jest.fn(),
