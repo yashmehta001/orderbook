@@ -283,6 +283,18 @@ This project implements a **basic order-matching algorithm** for buy and sell tr
 * In order history, trades are grouped by **transaction ID** for easy tracking.
 * Buyer and seller identities are **kept anonymous** in trade records.
 
+### 🔹 Database Transactions Guarantee
+
+⚡ **All trading operations (Buy & Sell) are executed inside a single TypeORM transaction**:
+
+* Matching orders.
+* Updating orderbook (removals/updates).
+* Adjusting user funds.
+* Writing order history.
+
+➡️ If **any step fails**, the **entire transaction is rolled back**, ensuring **100% consistency**.
+No partial trades or inconsistent states are ever written to the database.
+
 ---
 
 👉 This ensures **fair trade execution**, prevents self-trading, and maintains **100% consistency** with funds, orders, and history through transactional handling.
