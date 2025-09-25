@@ -437,7 +437,6 @@ export class OrderbookService implements IOrderbookService {
     orderId?: string,
   ): Promise<void> {
     if (quantity <= 0) return;
-    console.log('recordTradeHistory', orderId);
     if (isSell) {
       await this.orderHistoryService.createOrderHistory(
         {
