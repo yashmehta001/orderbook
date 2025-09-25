@@ -28,6 +28,7 @@ export class SerializeDtoInterceptor implements NestInterceptor {
         return {
           Error: false,
           message: this.message ? [this.message] : null,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           data: this.responseDto ? dtoToResponse(this.responseDto, data) : {},
         };
       }),

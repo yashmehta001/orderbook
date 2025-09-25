@@ -97,6 +97,7 @@ describe('OrderbookService', () => {
 
   describe('getOrderBooks', () => {
     it('should group BUY and SELL orders correctly', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       orderBookRepository.getOrderBooks.mockResolvedValueOnce(mockRawOrders);
 
       const result = await orderbookService.getOrderBooks(
