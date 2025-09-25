@@ -4,6 +4,7 @@ import { Request } from 'express';
 import { REQUEST_USER_KEY, UserType } from '../../token/types';
 import { UnauthorizedException } from '../errors';
 import { ConfigService } from '@nestjs/config';
+import { UserProfileReqDto } from '../../../users/dto';
 
 @Injectable()
 export class UserAccessTokenGuard implements CanActivate {
@@ -20,14 +21,18 @@ export class UserAccessTokenGuard implements CanActivate {
     }
 
     try {
-      const payload = await this.jwtService.verifyAsync(token, {
-        secret: this.configService.get<string>('JWT_SECRET'),
-      });
+      const payload: UserProfileReqDto = await this.jwtService.verifyAsync(
+        token,
+        {
+          secret: this.configService.get<string>('JWT_SECRET'),
+        },
+      );
 
       if (payload.userType !== UserType.USER) {
         throw new UnauthorizedException();
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       (request as any)[REQUEST_USER_KEY] = payload;
       return true;
     } catch {

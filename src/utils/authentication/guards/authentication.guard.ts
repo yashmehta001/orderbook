@@ -42,6 +42,7 @@ export class AuthenticationGuard implements CanActivate {
           return true;
         }
       } catch (err) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         lastError = err;
       }
     }

@@ -2,7 +2,7 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { OrderBookRepository } from '../repository/orderBook.repository';
 import { LoggerService } from '../../utils/logger/WinstonLogger';
 import { CreateBuyOrderReqDto, CreateOrderBookReqDto } from '../dto';
-import { OrderSideEnum } from '../../core/config';
+import { errorMessages, OrderSideEnum } from '../../core/config';
 import { CreateSellOrderReqDto } from '../dto/requests/sell-order.dto';
 import { OrderBookEntity } from '../entities/orderbook.entity';
 import { UserService } from '../../users/services/users.service';
@@ -10,8 +10,35 @@ import { OrderHistoryService } from '../../orderHistory/services/orderHistory.se
 import { v4 as uuid } from 'uuid';
 import { CustomError, NotFoundException } from '../../core/errors';
 import { DataSource, EntityManager } from 'typeorm';
+
+export interface IOrderbookService {
+  createOrder(
+    userId: string,
+    orderInfo: CreateOrderBookReqDto,
+  ): Promise<OrderBookEntity>;
+
+  getOrderBooks(
+    userId: string,
+    stockName?: string,
+    side?: OrderSideEnum,
+  ): Promise<{ BUY: any[]; SELL: any[] }>;
+
+  getOrdersByUserId(
+    userId: string,
+    side?: OrderSideEnum,
+    stockName?: string,
+  ): Promise<OrderBookEntity[]>;
+
+  deleteOrder(userId: string, id: string): Promise<void>;
+
+  sellOrder(userId: string, orderInfo: CreateSellOrderReqDto): Promise<any>;
+
+  buyOrder(userId: string, orderInfo: CreateBuyOrderReqDto): Promise<any>;
+
+  validateBalance(userId: string, updateFunds: number): Promise<boolean>;
+}
 @Injectable()
-export class OrderbookService {
+export class OrderbookService implements IOrderbookService {
   constructor(
     @Inject(OrderBookRepository)
     private readonly orderBookRepository: OrderBookRepository,
@@ -26,7 +53,10 @@ export class OrderbookService {
 
   static logInfo = 'Service - OrderBook:';
 
-  async createOrder(userId: string, orderInfo: CreateOrderBookReqDto) {
+  async createOrder(
+    userId: string,
+    orderInfo: CreateOrderBookReqDto,
+  ): Promise<OrderBookEntity> {
     try {
       this.logger.info(
         `${OrderbookService.logInfo} Create Order for userId: ${userId}`,
@@ -37,6 +67,7 @@ export class OrderbookService {
       );
       return order;
     } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this.logger.warn(`${OrderbookService.logInfo} ${error.message}`);
       throw error;
     }
@@ -64,7 +95,7 @@ export class OrderbookService {
       rawOrderBooks.forEach((row) => {
         const side = row.side as OrderSideEnum;
         grouped[side].push({
-          price: parseFloat(row.price),
+          price: row.price,
           quantity: parseInt(row.quantity),
           stockName: row.stockName,
         });
@@ -74,6 +105,7 @@ export class OrderbookService {
       );
       return grouped;
     } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this.logger.warn(`${OrderbookService.logInfo} ${error.message}`);
       throw error;
     }
@@ -83,7 +115,7 @@ export class OrderbookService {
     userId: string,
     side?: OrderSideEnum,
     stockName?: string,
-  ) {
+  ): Promise<OrderBookEntity[]> {
     try {
       this.logger.info(
         `${OrderbookService.logInfo} Fetching Orders for userId: ${userId}`,
@@ -98,12 +130,13 @@ export class OrderbookService {
       );
       return orders;
     } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this.logger.warn(`${OrderbookService.logInfo} ${error.message}`);
       throw error;
     }
   }
 
-  async deleteOrder(userId: string, id: string) {
+  async deleteOrder(userId: string, id: string): Promise<void> {
     try {
       this.logger.info(
         `${OrderbookService.logInfo} Deleting Order id: ${id} for userId: ${userId}`,
@@ -122,13 +155,13 @@ export class OrderbookService {
       return;
     } catch (error) {
       this.logger.warn(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         `${OrderbookService.logInfo} ${error.message} for id: ${id}`,
       );
       throw error;
     }
   }
 
-  // ToDo: Add transactions
   async sellOrder(userId: string, orderInfo: CreateSellOrderReqDto) {
     this.logInit('SELL', userId, orderInfo);
     const queryRunner = this.dataSource.createQueryRunner();
@@ -179,7 +212,8 @@ export class OrderbookService {
       };
     } catch (error) {
       this.logger.warn(
-        `${OrderbookService.logInfo} ${error.message} for userId: ${userId} payload: ${orderInfo}`,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        `${OrderbookService.logInfo} ${error.message} for userId: ${userId} payload: ${JSON.stringify(orderInfo)}`,
       );
       await queryRunner.rollbackTransaction();
       throw error;
@@ -202,7 +236,7 @@ export class OrderbookService {
           -orderInfo.price * orderInfo.quantity,
         ))
       ) {
-        throw new CustomError('Insufficient Balance');
+        throw new CustomError(errorMessages.INSUFFICIENT_BALANCE);
       }
 
       const existingSellOrders = await this.orderBookRepository.getOrderList(
@@ -210,7 +244,7 @@ export class OrderbookService {
         orderInfo,
       );
 
-      const id = uuid();
+      const id: string = uuid();
       const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
         await this.matchOrders({
           initiatorId: userId,
@@ -245,7 +279,8 @@ export class OrderbookService {
       };
     } catch (error) {
       this.logger.warn(
-        `${OrderbookService.logInfo} ${error.message} for userId: ${userId} payload: ${orderInfo}`,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        `${OrderbookService.logInfo} ${error.message} for userId: ${userId} payload: ${JSON.stringify(orderInfo)}`,
       );
       await queryRunner.rollbackTransaction();
       throw error;
@@ -272,6 +307,7 @@ export class OrderbookService {
       return funds + updateFunds + pledged >= 0;
     } catch (error) {
       this.logger.warn(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         `${OrderbookService.logInfo} ${error.message} for userId: ${userId} payload: ${updateFunds}`,
       );
       throw error;
@@ -405,7 +441,7 @@ export class OrderbookService {
         {
           ...orderInfo,
           user: { id: initiatorId },
-          id: orderId ?? uuid(),
+          id: (orderId as string) ?? uuid(),
           quantity,
           price: opposite.price,
         },
@@ -443,7 +479,7 @@ export class OrderbookService {
 
   private async processFundsForSell(
     sellerId: string,
-    trades: any[],
+    trades: { buyerId: string; quantity: number; price: number }[],
     price: number,
     manager: EntityManager,
   ) {
@@ -472,14 +508,17 @@ export class OrderbookService {
     for (const { sellerId, quantity, price } of trades) {
       const total = quantity * price;
       buyerDebit -= total;
-      sellerCredits[sellerId] = (sellerCredits[sellerId] || 0) + total;
+      const sellerKey: string = String(sellerId);
+      sellerCredits[sellerKey] = (sellerCredits[sellerKey] || 0) + total;
     }
 
     await this.userService.updateFunds(buyerId, buyerDebit, manager);
 
-    for (const [sellerId, delta] of Object.entries(sellerCredits)) {
-      await this.userService.updateFunds(sellerId, delta, manager);
-    }
+    await Promise.all(
+      Object.entries(sellerCredits).map(([sellerId, delta]) => {
+        return this.userService.updateFunds(sellerId, delta, manager);
+      }),
+    );
   }
 
   private async recordOrderHistory(
@@ -489,10 +528,9 @@ export class OrderbookService {
     totalQuantity: number,
     manager: EntityManager,
   ) {
-    if (totalQuantity <= 0) return;
     await this.orderHistoryService.createOrderHistory(
       {
-        id: orderId ?? uuid(),
+        id: (orderId as string) ?? uuid(),
         ...orderInfo,
         user: { id: userId },
         quantity: totalQuantity,
@@ -501,7 +539,10 @@ export class OrderbookService {
     );
   }
 
-  private summarizeTrades(trades: any[]) {
+  private summarizeTrades(trades: { quantity: number; price: number }[]): {
+    totalQuantity: number;
+    totalFunds: number;
+  } {
     return {
       totalQuantity: trades.reduce((sum, t) => sum + t.quantity, 0),
       totalFunds: trades.reduce((sum, t) => sum + t.quantity * t.price, 0),
@@ -510,6 +551,7 @@ export class OrderbookService {
 
   private logInit(type: 'BUY' | 'SELL', userId: string, info: any) {
     this.logger.info(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       `${OrderbookService.logInfo} ${type} order init | userId=${userId} | stock=${info.stockName} | qty=${info.quantity} | price=${info.price}`,
     );
   }
@@ -521,6 +563,7 @@ export class OrderbookService {
     remaining: number,
   ) {
     this.logger.info(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       `${OrderbookService.logInfo} ${type} order complete | userId=${userId} | filled=${info.quantity - remaining} | remaining=${remaining}`,
     );
   }

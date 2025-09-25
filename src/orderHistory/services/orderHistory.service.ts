@@ -4,9 +4,20 @@ import { OrderHistoryRepository } from '../repository/orderHistory.repository';
 import { CreateOrderHistoryDto } from '../dto/request/createHistory.dto';
 import { OrderHistoryItemDto, OrderHistoryTransactionResDto } from '../dto';
 import { EntityManager } from 'typeorm';
+import { OrderHistoryEntity } from '../entities/orderHistory.entity';
 
+export interface IOrderHistoryService {
+  createOrderHistory(
+    orderInfo: CreateOrderHistoryDto,
+    manager?: EntityManager,
+  ): Promise<any>;
+
+  getOrderHistoryByUserId(
+    userId: string,
+  ): Promise<OrderHistoryTransactionResDto[]>;
+}
 @Injectable()
-export class OrderHistoryService {
+export class OrderHistoryService implements IOrderHistoryService {
   constructor(
     @Inject(OrderHistoryRepository)
     private readonly orderHistoryRepository: OrderHistoryRepository,
@@ -16,9 +27,8 @@ export class OrderHistoryService {
   async createOrderHistory(
     orderInfo: CreateOrderHistoryDto,
     manager?: EntityManager,
-  ): Promise<any> {
+  ): Promise<OrderHistoryEntity> {
     try {
-      if (!orderInfo.quantity || orderInfo.quantity <= 0) return;
       this.logger.info(
         `${OrderHistoryService.logInfo} Creating order history for user ${orderInfo.user.id}`,
       );
@@ -32,6 +42,7 @@ export class OrderHistoryService {
       return history;
     } catch (error) {
       this.logger.warn(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         `${OrderHistoryService.logInfo} Error creating order history for user ${orderInfo.user.id}: ${error.message}`,
       );
       throw error;
@@ -78,6 +89,7 @@ export class OrderHistoryService {
       return result;
     } catch (error) {
       this.logger.warn(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         `${OrderHistoryService.logInfo} Error fetching order history for user ${userId}: ${error.message}`,
       );
       throw error;

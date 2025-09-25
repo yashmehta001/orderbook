@@ -4,6 +4,14 @@ import { EntityManager, Repository } from 'typeorm';
 import { OrderHistoryEntity } from '../entities/orderHistory.entity';
 import { CreateOrderHistoryDto } from '../dto/request/createHistory.dto';
 
+export interface IOrderHistoryRepository {
+  save(
+    orderInfo: Partial<CreateOrderHistoryDto>,
+    manager?: EntityManager,
+  ): Promise<OrderHistoryEntity>;
+
+  getByUserId(userId: string): Promise<OrderHistoryEntity[]>;
+}
 @Injectable()
 export class OrderHistoryRepository {
   constructor(

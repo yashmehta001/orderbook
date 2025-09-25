@@ -6,21 +6,23 @@ import { UserCreateReqDto } from '../dto';
 import { EntityManager } from 'typeorm';
 
 export interface IUserRepository {
-  save(userEntity: UserCreateReqDto): Promise<UserEntity>;
+  save(
+    userInfo: UserCreateReqDto,
+    manager?: EntityManager,
+  ): Promise<UserEntity>;
 
   getByEmail(email: string): Promise<UserEntity | null>;
 
   getById(id: string): Promise<UserEntity | null>;
 }
-
 @Injectable()
-export class UserRepository implements IUserRepository {
+export class UserRepository {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userEntity: Repository<UserEntity>,
   ) {}
 
-  private getRepo(manager?: EntityManager) {
+  private getRepo(manager?: EntityManager): Repository<UserEntity> {
     return manager ? manager.getRepository(UserEntity) : this.userEntity;
   }
   async save(
@@ -29,11 +31,11 @@ export class UserRepository implements IUserRepository {
   ): Promise<UserEntity> {
     const repo = this.getRepo(manager);
     const userEntity = repo.create(userInfo);
-    return await repo.save(userEntity);
+    return repo.save(userEntity);
   }
 
   async getByEmail(email: string): Promise<UserEntity | null> {
-    return await this.userEntity.findOne({
+    return this.userEntity.findOne({
       where: {
         email,
       },
@@ -41,7 +43,7 @@ export class UserRepository implements IUserRepository {
   }
 
   async getById(id: string): Promise<UserEntity | null> {
-    return await this.userEntity.findOne({
+    return this.userEntity.findOne({
       where: {
         id,
       },

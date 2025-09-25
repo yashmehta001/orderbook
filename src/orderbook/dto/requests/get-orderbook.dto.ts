@@ -4,7 +4,7 @@ import { OrderSideEnum } from '../../../core/config';
 
 export class GetOrderBooksReqDto {
   @ApiPropertyOptional({
-    example: 'Google',
+    example: 'google',
     description: 'Filter by stock name',
   })
   @IsOptional()

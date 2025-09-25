@@ -12,9 +12,15 @@ import {
 import { LoggerService } from '../../utils/logger/WinstonLogger';
 import { EntityManager, QueryFailedError } from 'typeorm';
 import { OrderbookService } from '../../orderbook/services/orderbook.service';
-
+import { errorMessages } from '../../core/config/messages';
+export interface IUserService {
+  createUser(data: UserCreateReqDto): Promise<{ user: any; token: string }>;
+  loginUser(data: UserLoginReqDto): Promise<{ user: any; token: string }>;
+  profile(id: string): Promise<any>;
+  updateFunds(id: string, funds: number, manager?: EntityManager): Promise<any>;
+}
 @Injectable()
-export class UserService {
+export class UserService implements IUserService {
   constructor(
     @Inject(UserRepository)
     private readonly userRepository: UserRepository,
@@ -56,9 +62,10 @@ export class UserService {
         throw translateTypeOrmError(error);
       }
       this.logger.warn(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         `${UserService.logInfo} ${error.message} for email: ${data.email}`,
       );
-      throw new error();
+      throw error;
     }
   }
 
@@ -70,7 +77,7 @@ export class UserService {
       const user = await this.userRepository.getByEmail(data.email);
       if (!user) {
         throw new CustomError(
-          `Incorrect Email or Password`,
+          errorMessages.INCORRECT_CREDENTIALS,
           HttpStatus.UNAUTHORIZED,
         );
       }
@@ -80,7 +87,7 @@ export class UserService {
       );
       if (!isEqual) {
         throw new CustomError(
-          `Incorrect Email or Password`,
+          errorMessages.INCORRECT_CREDENTIALS,
           HttpStatus.UNAUTHORIZED,
         );
       }
@@ -98,6 +105,7 @@ export class UserService {
       };
     } catch (error) {
       this.logger.warn(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         `${UserService.logInfo} ${error.message} for email: ${data.email}`,
       );
       throw error;
@@ -119,6 +127,7 @@ export class UserService {
       );
       return user;
     } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this.logger.warn(`${UserService.logInfo} ${error.message} for id: ${id}`);
       throw error;
     }
@@ -130,7 +139,10 @@ export class UserService {
     );
     try {
       if (!(await this.orderBookService.validateBalance(id, funds)))
-        throw new CustomError('Insufficient Balance');
+        throw new CustomError(
+          errorMessages.INSUFFICIENT_BALANCE,
+          HttpStatus.BAD_REQUEST,
+        );
 
       const user = await this.userRepository.getById(id);
       if (!user) {
@@ -147,6 +159,7 @@ export class UserService {
       );
       return user;
     } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this.logger.warn(`${UserService.logInfo} ${error.message} for id: ${id}`);
       throw error;
     }

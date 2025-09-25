@@ -24,15 +24,17 @@ export class OrderHistoryController {
   })
   @ApiOkResponse({
     description:
-      'When user profile is successfully retrieved then this response will receive',
+      'When successfully executed it will fetch all completed transaction history for this user',
     type: OrderHistoryTransactionResDto,
   })
   @ApiBadRequestResponse({
-    description: 'when history is not found',
+    description: 'when trade history is not found',
   })
   @ApiBearerAuth()
-  @Get('/history')
-  async history(@AuthUser() user: UserProfileReqDto) {
+  @Get('/')
+  async history(
+    @AuthUser() user: UserProfileReqDto,
+  ): Promise<OrderHistoryTransactionResDto[]> {
     return this.orderHistoryService.getOrderHistoryByUserId(user.id);
   }
 }

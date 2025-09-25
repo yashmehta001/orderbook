@@ -6,7 +6,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { map, Observable } from 'rxjs';
-import { plainToInstance } from 'class-transformer';
+import { ClassConstructor, plainToInstance } from 'class-transformer';
 
 export function Serialize(
   responseDto: any = undefined,
@@ -28,6 +28,7 @@ export class SerializeDtoInterceptor implements NestInterceptor {
         return {
           Error: false,
           message: this.message ? [this.message] : null,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           data: this.responseDto ? dtoToResponse(this.responseDto, data) : {},
         };
       }),
@@ -35,7 +36,10 @@ export class SerializeDtoInterceptor implements NestInterceptor {
   }
 }
 
-export const dtoToResponse = (responseDto, data) => {
+export const dtoToResponse = (
+  responseDto: ClassConstructor<unknown>,
+  data: unknown[],
+) => {
   return plainToInstance(responseDto, data, {
     excludeExtraneousValues: true,
   });
