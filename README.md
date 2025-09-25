@@ -215,6 +215,81 @@ Manages user accounts, authentication, profiles, and funds.
 
 ---
 
+## 📊 Buy & Sell Algorithm
+
+This project implements a **basic order-matching algorithm** for buy and sell trades with the following rules:
+
+### 🔹 Sell Orders
+
+* The **selling price is fixed**. Once a seller places an order, the stock remains listed on the orderbook until it is bought at that price.
+* **Self-trading is not allowed**: Users cannot buy their own stocks. Their own orders are hidden from their orderbook and shown only in their **pending orders** view.
+
+### 🔹 Orderbook View
+
+* The orderbook shows **all pending buy and sell orders** in the system (excluding their own pending orders).
+* Orders are **grouped by stock name and price**, with quantities aggregated.
+* Orders are divided into two segments: **Buy** and **Sell**.
+* You can filter the orderbook by **order type** (buy/sell) and by **stock name**.
+
+### 🔹 Buy Orders
+
+1. When a buyer places an order:
+
+   * The system verifies if the buyer has **sufficient funds**.
+   * Funds are checked against:
+
+     ```
+     available balance - (sum of previous pending buy orders) - (new order price * quantity)
+     ```
+2. The **buying price is treated as the maximum price** the buyer is willing to pay.
+3. Matching Process:
+
+   * The system queries all **sell orders** of the same stock where the selling price ≤ buy price.
+   * Results are **sorted by lowest selling price first**.
+   * If multiple sellers exist at the same price, the **earliest order placed gets priority**.
+4. Matching continues until the buy quantity is fulfilled.
+
+   * If multiple sellers are needed, partial matches are handled.
+   * If not enough stock is available, the remaining quantity is placed as a **pending buy order** at the buyer’s price.
+
+### 🔹 Sell Orders
+
+1. For a new sell order:
+
+   * The system looks at **buy orders** for the same stock.
+   * Orders are matched starting with the **highest buy price**.
+   * If multiple buyers are at the same price, the **earliest order placed gets priority**.
+2. Matching continues until the sell quantity is fulfilled.
+
+   * If partially fulfilled, the remaining quantity stays in the orderbook.
+
+### 🔹 Trade Recording
+
+* After a match, funds are:
+
+  * **Deducted from the buyer’s account**.
+  * **Credited to the seller’s account**.
+* All completed trades are recorded in the **OrderHistory table**, including:
+
+  * Stock name
+  * Price
+  * Quantity
+  * Order type (buy/sell)
+  * Transaction ID
+
+### 🔹 Transaction IDs
+
+* When multiple **partial orders** are used to fulfill a buy/sell lot, a **transaction ID** links them together.
+* In order history, trades are grouped by **transaction ID** for easy tracking.
+* Buyer and seller identities are **kept anonymous** in trade records.
+
+---
+
+👉 This ensures **fair trade execution**, prevents self-trading, and maintains **100% consistency** with funds, orders, and history through transactional handling.
+
+---
+
+
 ## ✅ Summary
 
 * Full-featured orderbook system.
