@@ -9,13 +9,18 @@ import { mockOrderHistoryService } from '../../../orderHistory/tests/mocks';
 import { DataSource } from 'typeorm';
 import { mockDataSource, mockOrderServiceRepository } from '../mocks';
 import {
+  mockCreateBuyOrderRequest,
   mockCreateOrderRequest,
-  mockOrderBookData,
+  mockOrderBookBuyData,
+  mockOrderBookBuyDataExcessOrder,
+  mockOrderBookBuyDataRemainingOrder,
+  mockOrderBookSellData,
   mockRawOrders,
 } from '../constants';
 import { userOutput, userProfileInput } from '../../../users/tests/constants';
 import { OrderSideEnum } from '../../../core/config/constants';
 import { NotFoundException } from '../../../core/errors/notFoundException.error';
+import { mockOrderHistoryItem } from '../../../orderHistory/tests/constants';
 
 describe('OrderbookService', () => {
   let orderbookService: OrderbookService;
@@ -66,14 +71,14 @@ describe('OrderbookService', () => {
 
   describe('createOrder', () => {
     it('should save and return order on success', async () => {
-      orderBookRepository.save.mockResolvedValueOnce(mockOrderBookData);
+      orderBookRepository.save.mockResolvedValueOnce(mockOrderBookBuyData);
 
       const result = await orderbookService.createOrder(
         userProfileInput.id,
         mockCreateOrderRequest,
       );
 
-      expect(result).toEqual(mockOrderBookData);
+      expect(result).toEqual(mockOrderBookBuyData);
     });
 
     it('should log warning and rethrow on error', async () => {
@@ -92,6 +97,7 @@ describe('OrderbookService', () => {
 
   describe('getOrderBooks', () => {
     it('should group BUY and SELL orders correctly', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       orderBookRepository.getOrderBooks.mockResolvedValueOnce(mockRawOrders);
 
       const result = await orderbookService.getOrderBooks(
@@ -130,7 +136,7 @@ describe('OrderbookService', () => {
   });
   describe('getOrdersByUserId', () => {
     it('should return orders for a user on success', async () => {
-      const mockOrders = [mockOrderBookData];
+      const mockOrders = [mockOrderBookBuyData];
       orderBookRepository.getOrdersByUserId.mockResolvedValueOnce(mockOrders);
 
       const result = await orderbookService.getOrdersByUserId(
@@ -166,11 +172,16 @@ describe('OrderbookService', () => {
 
   describe('deleteOrder', () => {
     it('should delete an order successfully', async () => {
-      orderBookRepository.getOrderById.mockResolvedValueOnce(mockOrderBookData);
+      orderBookRepository.getOrderById.mockResolvedValueOnce(
+        mockOrderBookBuyData,
+      );
       orderBookRepository.bulkRemoveOrders.mockResolvedValueOnce(undefined);
 
       await expect(
-        orderbookService.deleteOrder(userProfileInput.id, mockOrderBookData.id),
+        orderbookService.deleteOrder(
+          userProfileInput.id,
+          mockOrderBookBuyData.id,
+        ),
       ).resolves.toBeUndefined();
     });
 
@@ -184,7 +195,9 @@ describe('OrderbookService', () => {
 
     it('should log warning and rethrow error if bulkRemoveOrders fails', async () => {
       const mockOrder = { id: 'order-123', userId: userProfileInput.id };
-      orderBookRepository.getOrderById.mockResolvedValueOnce(mockOrderBookData);
+      orderBookRepository.getOrderById.mockResolvedValueOnce(
+        mockOrderBookBuyData,
+      );
       orderBookRepository.bulkRemoveOrders.mockRejectedValueOnce(
         new Error('delete failed'),
       );
@@ -208,9 +221,9 @@ describe('OrderbookService', () => {
 
     it('should return true when funds + updateFunds + pledged >= 0', async () => {
       userService.profile.mockResolvedValueOnce(userOutput);
-      orderbookService.getOrdersByUserId = jest.fn().mockResolvedValueOnce([
-        { price: 100, quantity: 2 },
-      ]);
+      orderbookService.getOrdersByUserId = jest
+        .fn()
+        .mockResolvedValueOnce([{ price: 100, quantity: 2 }]);
 
       const result = await orderbookService.validateBalance(
         userProfileInput.id,
@@ -253,6 +266,103 @@ describe('OrderbookService', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(Object);
       }
+    });
+  });
+  describe('sellOrder', () => {
+    it('should sell an order successfully', async () => {
+      orderBookRepository.getOrderList.mockResolvedValueOnce([
+        mockOrderBookBuyData,
+      ]);
+      orderHistoryService.createOrderHistory.mockResolvedValueOnce(
+        mockOrderHistoryItem,
+      );
+      await orderbookService.sellOrder(
+        userProfileInput.id,
+        mockCreateOrderRequest,
+      );
+      expect(mockDataSource.release).toHaveBeenCalled();
+    });
+    it('should sell an order successfully - remaining order', async () => {
+      orderBookRepository.getOrderList.mockResolvedValueOnce([
+        mockOrderBookBuyDataRemainingOrder,
+      ]);
+      await orderbookService.sellOrder(
+        userProfileInput.id,
+        mockCreateOrderRequest,
+      );
+      expect(mockDataSource.release).toHaveBeenCalled();
+    });
+    it('should sell an order successfully - excess order', async () => {
+      orderBookRepository.getOrderList.mockResolvedValueOnce([
+        mockOrderBookBuyDataExcessOrder,
+      ]);
+      await orderbookService.sellOrder(
+        userProfileInput.id,
+        mockCreateOrderRequest,
+      );
+      expect(mockDataSource.release).toHaveBeenCalled();
+    });
+    it('should throw error', async () => {
+      orderBookRepository.getOrderList.mockRejectedValueOnce(
+        new Error('test error'),
+      );
+      try {
+        await orderbookService.sellOrder(
+          userProfileInput.id,
+          mockCreateOrderRequest,
+        );
+      } catch (error) {
+        expect(error).toBeInstanceOf(Object);
+      }
+      expect(mockDataSource.release).toHaveBeenCalled();
+    });
+  });
+
+  describe('buyOrder', () => {
+    it('should buy an order successfully', async () => {
+      orderBookRepository.getOrderList.mockResolvedValueOnce([
+        mockOrderBookSellData,
+      ]);
+      userService.profile.mockResolvedValueOnce(userOutput);
+      orderbookService.validateBalance = jest.fn().mockResolvedValueOnce(true);
+      await orderbookService.buyOrder(
+        userProfileInput.id,
+        mockCreateBuyOrderRequest,
+      );
+      expect(mockDataSource.release).toHaveBeenCalled();
+    });
+
+    it('should throw error with insufficient balance', async () => {
+      orderBookRepository.getOrderList.mockResolvedValueOnce([
+        mockOrderBookSellData,
+      ]);
+      userService.profile.mockResolvedValueOnce(userOutput);
+      orderbookService.validateBalance = jest.fn().mockResolvedValueOnce(false);
+      try {
+        await orderbookService.buyOrder(
+          userProfileInput.id,
+          mockCreateBuyOrderRequest,
+        );
+      } catch (error) {
+        expect(error).toBeInstanceOf(Object);
+      }
+      expect(mockDataSource.release).toHaveBeenCalled();
+    });
+    it('should throw error', async () => {
+      orderBookRepository.getOrderList.mockRejectedValueOnce(
+        new Error('test error'),
+      );
+      userService.profile.mockResolvedValueOnce(userOutput);
+      orderbookService.validateBalance = jest.fn().mockResolvedValueOnce(true);
+      try {
+        await orderbookService.buyOrder(
+          userProfileInput.id,
+          mockCreateBuyOrderRequest,
+        );
+      } catch (error) {
+        expect(error).toBeInstanceOf(Object);
+      }
+      expect(mockDataSource.release).toHaveBeenCalled();
     });
   });
 });

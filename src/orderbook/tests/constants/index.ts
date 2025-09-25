@@ -11,10 +11,49 @@ import {
 import { OrderBookEntity } from '../../entities/orderbook.entity';
 import { userOutput } from '../../../users/tests/constants';
 
-export const mockOrderBookData: OrderBookEntity = {
+export const mockOrderBookBuyData: OrderBookEntity = {
   id: 'c212e0e8-aa57-46e8-86ea-782bc224e0fe',
   stockName: 'apple',
   side: OrderSideEnum.BUY,
+  price: 300,
+  quantity: 3,
+  user: userOutput,
+  auditInfo: {
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  generateId: () => 'mock-id',
+};
+export const mockOrderBookBuyDataRemainingOrder: OrderBookEntity = {
+  id: 'c212e0e8-aa57-46e8-86ea-782bc224e0fe',
+  stockName: 'apple',
+  side: OrderSideEnum.BUY,
+  price: 300,
+  quantity: 2,
+  user: userOutput,
+  auditInfo: {
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  generateId: () => 'mock-id',
+};
+export const mockOrderBookBuyDataExcessOrder: OrderBookEntity = {
+  id: 'c212e0e8-aa57-46e8-86ea-782bc224e0fe',
+  stockName: 'apple',
+  side: OrderSideEnum.BUY,
+  price: 300,
+  quantity: 5,
+  user: userOutput,
+  auditInfo: {
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  generateId: () => 'mock-id',
+};
+export const mockOrderBookSellData: OrderBookEntity = {
+  id: 'c212e0e8-aa57-46e8-86ea-782bc224e0fe',
+  stockName: 'apple',
+  side: OrderSideEnum.SELL,
   price: 300,
   quantity: 3,
   user: userOutput,
@@ -49,7 +88,7 @@ export const mockCreateSellOrderResponse: ISellTrade = {
       quantity: 280,
     },
   ],
-  remainingOrder: mockOrderBookData,
+  remainingOrder: mockOrderBookBuyData,
 };
 
 export const mockCreateBuyOrderRequest: CreateBuyOrderReqDto = {
@@ -71,7 +110,7 @@ export const mockCreateBuyOrderResponse: IBuyTrade = {
       quantity: 280,
     },
   ],
-  remainingOrder: mockOrderBookData,
+  remainingOrder: mockOrderBookBuyData,
 };
 
 export const query: GetOrderBooksReqDto = {
