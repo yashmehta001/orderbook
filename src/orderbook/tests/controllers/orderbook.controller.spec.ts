@@ -8,7 +8,7 @@ import {
   mockCreateBuyOrderResponse,
   mockCreateBuyOrderRequest,
   query,
-  mockOrderBookData,
+  mockOrderBookBuyData,
   mockOrderBook,
 } from '../constants';
 import { userProfileInput } from '../../../users/tests/constants';
@@ -65,14 +65,16 @@ describe('Orderbook Controller', () => {
 
   describe('getUserOrderBooks', () => {
     it('should call service.getOrdersByUserId with userId, side, stockName', async () => {
-      orderbookService.getOrdersByUserId.mockResolvedValue([mockOrderBookData]);
+      orderbookService.getOrdersByUserId.mockResolvedValue([
+        mockOrderBookBuyData,
+      ]);
 
       const result = await orderbookController.getUserOrderBooks(
         userProfileInput,
         query,
       );
 
-      expect(result).toEqual([mockOrderBookData]);
+      expect(result).toEqual([mockOrderBookBuyData]);
     });
   });
   describe('deleteOrderFromOrderBooks', () => {
