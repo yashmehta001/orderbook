@@ -207,14 +207,15 @@ export class OrderbookService implements IOrderbookService {
       await this.processFundsForSell(userId, trades, orderInfo.price, manager);
 
       const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
-
-      await this.recordOrderHistory(
-        userId,
-        orderInfo,
-        remainingOrder?.id,
-        totalQuantity,
-        manager,
-      );
+      if (totalQuantity > 0) {
+        await this.recordOrderHistory(
+          userId,
+          orderInfo,
+          remainingOrder?.id,
+          totalQuantity,
+          manager,
+        );
+      }
 
       this.logComplete('SELL', userId, orderInfo, remainingQuantity);
       await queryRunner.commitTransaction();
@@ -367,16 +368,17 @@ export class OrderbookService implements IOrderbookService {
           );
 
       trades.push(trade);
-
-      await this.recordTradeHistory(
-        isSell,
-        initiatorId,
-        opposite,
-        orderInfo,
-        tradeQty,
-        manager,
-        orderId,
-      );
+      if (trade.quantity > 0) {
+        await this.recordTradeHistory(
+          isSell,
+          initiatorId,
+          opposite,
+          orderInfo,
+          tradeQty,
+          manager,
+          orderId,
+        );
+      }
 
       if (availableQty <= remainingQuantity) {
         ordersToRemove.push(opposite.id);
@@ -436,7 +438,6 @@ export class OrderbookService implements IOrderbookService {
     manager: EntityManager,
     orderId?: string,
   ): Promise<void> {
-    if (quantity <= 0) return;
     if (isSell) {
       await this.orderHistoryService.createOrderHistory(
         {

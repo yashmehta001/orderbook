@@ -16,7 +16,7 @@ export interface IUserRepository {
   getById(id: string): Promise<UserEntity | null>;
 }
 @Injectable()
-export class UserRepository {
+export class UserRepository implements IUserRepository {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userEntity: Repository<UserEntity>,
