@@ -59,7 +59,7 @@ export class OrderbookService implements IOrderbookService {
     private readonly userService: UserService,
     private readonly orderHistoryService: OrderHistoryService,
 
-    private dataSource: DataSource,
+    private readonly dataSource: DataSource,
   ) {}
 
   static logInfo = 'Service - OrderBook:';
