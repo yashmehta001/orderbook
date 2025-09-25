@@ -15,13 +15,19 @@ export class AppSeeder {
   ) {}
   static logInfo = 'Database - Seed:';
   async seed(): Promise<void> {
-    this.logger.info(`${AppSeeder.logInfo} Seeding Initialized`);
+    try {
+      this.logger.info(`${AppSeeder.logInfo} Seeding Initialized`);
 
-    const { user } = await this.userService.createUser(seedUser);
-    seedOrders.forEach(async (seedOrder) => {
-      await this.orderbookService.createOrder(user.id, seedOrder);
-    });
+      const { user } = await this.userService.createUser(seedUser);
+      for (const seedOrder of seedOrders) {
+        await this.orderbookService.createOrder(user.id, seedOrder);
+      }
 
-    this.logger.info(`${AppSeeder.logInfo} Seeding Completed`);
+      this.logger.info(`${AppSeeder.logInfo} Seeding Completed`);
+    } catch (error: any) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      this.logger.warn(`${AppSeeder.logInfo} ${error.message}`);
+      throw error;
+    }
   }
 }

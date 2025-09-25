@@ -4,15 +4,17 @@ import {
   IsNumber,
   IsString,
   MaxLength,
+  Min,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import { IsNotBlank } from '../../../utils/decorators';
 
 export class UserCreateReqDto {
   @IsNotBlank()
-  @IsNotEmpty()
-  @IsString()
-  @MaxLength(255)
+  @IsNotEmpty({ message: 'First name is required' })
+  @IsString({ message: 'First name must be a string' })
+  @MaxLength(255, { message: 'First name cannot exceed 255 characters' })
   @ApiProperty({
     example: 'john',
     maxLength: 255,
@@ -21,9 +23,9 @@ export class UserCreateReqDto {
   firstName: string;
 
   @IsNotBlank()
-  @IsNotEmpty()
-  @IsString()
-  @MaxLength(255)
+  @IsNotEmpty({ message: 'Last name is required' })
+  @IsString({ message: 'Last name must be a string' })
+  @MaxLength(255, { message: 'Last name cannot exceed 255 characters' })
   @ApiProperty({
     example: 'doe',
     maxLength: 255,
@@ -31,23 +33,25 @@ export class UserCreateReqDto {
   })
   lastName: string;
 
-  @IsEmail()
-  @MaxLength(255)
+  @IsEmail({}, { message: 'Invalid email format' })
+  @MaxLength(255, { message: 'Email cannot exceed 255 characters' })
   @ApiProperty({
     example: 'john@doe.com',
     required: true,
   })
   email: string;
 
-  @IsString()
-  @MaxLength(100)
+  @IsString({ message: 'Password must be a string' })
+  @MaxLength(100, { message: 'Password cannot exceed 100 characters' })
   @ApiProperty({
     example: '123456',
     required: false,
   })
   password: string;
 
-  @IsNumber()
+  @Type(() => Number)
+  @IsNumber({}, { message: 'Funds must be a valid number' })
+  @Min(0, { message: 'Funds cannot be negative' })
   @ApiProperty({
     example: 0,
     required: false,
