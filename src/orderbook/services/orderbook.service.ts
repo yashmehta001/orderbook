@@ -1,7 +1,15 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { OrderBookRepository } from '../repository/orderBook.repository';
 import { LoggerService } from '../../utils/logger/WinstonLogger';
-import { CreateBuyOrderReqDto, CreateOrderBookReqDto } from '../dto';
+import {
+  CreateBuyOrderReqDto,
+  CreateOrderBookReqDto,
+  IBuyTrade,
+  IOrderBook,
+  ISellTrade,
+  IStockTradeSummary,
+  ITrade,
+} from '../dto';
 import { errorMessages, OrderSideEnum } from '../../core/config';
 import { CreateSellOrderReqDto } from '../dto/requests/sell-order.dto';
 import { OrderBookEntity } from '../entities/orderbook.entity';
@@ -21,7 +29,7 @@ export interface IOrderbookService {
     userId: string,
     stockName?: string,
     side?: OrderSideEnum,
-  ): Promise<{ BUY: any[]; SELL: any[] }>;
+  ): Promise<IOrderBook>;
 
   getOrdersByUserId(
     userId: string,
@@ -31,9 +39,12 @@ export interface IOrderbookService {
 
   deleteOrder(userId: string, id: string): Promise<void>;
 
-  sellOrder(userId: string, orderInfo: CreateSellOrderReqDto): Promise<any>;
+  sellOrder(
+    userId: string,
+    orderInfo: CreateSellOrderReqDto,
+  ): Promise<ISellTrade>;
 
-  buyOrder(userId: string, orderInfo: CreateBuyOrderReqDto): Promise<any>;
+  buyOrder(userId: string, orderInfo: CreateBuyOrderReqDto): Promise<IBuyTrade>;
 
   validateBalance(userId: string, updateFunds: number): Promise<boolean>;
 }
@@ -77,7 +88,7 @@ export class OrderbookService implements IOrderbookService {
     userId: string,
     stockName: string = '',
     side?: OrderSideEnum,
-  ) {
+  ): Promise<IOrderBook> {
     try {
       this.logger.info(
         `${OrderbookService.logInfo} Fetching OrderBooks for stockName: ${stockName}`,
@@ -87,9 +98,9 @@ export class OrderbookService implements IOrderbookService {
         stockName,
         side,
       );
-      const grouped = {
-        BUY: [] as { price: number; quantity: number; stockName: string }[],
-        SELL: [] as { price: number; quantity: number; stockName: string }[],
+      const grouped: IOrderBook = {
+        BUY: [] as IStockTradeSummary[],
+        SELL: [] as IStockTradeSummary[],
       };
 
       rawOrderBooks.forEach((row) => {
@@ -162,7 +173,10 @@ export class OrderbookService implements IOrderbookService {
     }
   }
 
-  async sellOrder(userId: string, orderInfo: CreateSellOrderReqDto) {
+  async sellOrder(
+    userId: string,
+    orderInfo: CreateSellOrderReqDto,
+  ): Promise<ISellTrade> {
     this.logInit('SELL', userId, orderInfo);
     const queryRunner = this.dataSource.createQueryRunner();
     try {
@@ -222,7 +236,10 @@ export class OrderbookService implements IOrderbookService {
     }
   }
 
-  async buyOrder(userId: string, orderInfo: CreateBuyOrderReqDto) {
+  async buyOrder(
+    userId: string,
+    orderInfo: CreateBuyOrderReqDto,
+  ): Promise<IBuyTrade> {
     const queryRunner = this.dataSource.createQueryRunner();
     try {
       await queryRunner.connect();
@@ -329,7 +346,7 @@ export class OrderbookService implements IOrderbookService {
     const { initiatorId, orderInfo, oppositeOrders, isSell, orderId, manager } =
       params;
     let remainingQuantity = orderInfo.quantity;
-    const trades: any[] = [];
+    const trades: ITrade[] = [];
     const ordersToRemove: string[] = [];
     const ordersToUpdate: { id: string; quantity: number }[] = [];
 
@@ -381,7 +398,7 @@ export class OrderbookService implements IOrderbookService {
     sellerId: string,
     orderInfo: CreateSellOrderReqDto,
     qty: number,
-  ) {
+  ): ITrade {
     return {
       buyOrderId: opposite.id,
       buyerId: opposite?.user?.id,
@@ -398,9 +415,9 @@ export class OrderbookService implements IOrderbookService {
     orderInfo: CreateBuyOrderReqDto,
     qty: number,
     orderId: string,
-  ) {
+  ): ITrade {
     return {
-      buyUserId: buyerId,
+      buyerId: buyerId,
       sellOrderId: opposite.id,
       sellerId: opposite?.user?.id,
       stockName: orderInfo.stockName,
@@ -418,8 +435,9 @@ export class OrderbookService implements IOrderbookService {
     quantity: number,
     manager: EntityManager,
     orderId?: string,
-  ) {
+  ): Promise<void> {
     if (quantity <= 0) return;
+    console.log('recordTradeHistory', orderId);
     if (isSell) {
       await this.orderHistoryService.createOrderHistory(
         {
@@ -454,10 +472,10 @@ export class OrderbookService implements IOrderbookService {
     remove: string[],
     update: { id: string; quantity: number }[],
     manager: EntityManager,
-  ) {
-    if (remove.length > 0)
+  ): Promise<void> {
+    if (remove.length)
       await this.orderBookRepository.bulkRemoveOrders(remove, manager);
-    if (update.length > 0)
+    if (update.length)
       await this.orderBookRepository.bulkUpdateQuantities(update, manager);
   }
 
@@ -467,7 +485,7 @@ export class OrderbookService implements IOrderbookService {
     remainingQuantity: number,
     manager: EntityManager,
     id?: string,
-  ) {
+  ): Promise<OrderBookEntity | null> {
     if (remainingQuantity <= 0) return null;
     return this.orderBookRepository.save(
       userId,
@@ -479,10 +497,10 @@ export class OrderbookService implements IOrderbookService {
 
   private async processFundsForSell(
     sellerId: string,
-    trades: { buyerId: string; quantity: number; price: number }[],
+    trades: ITrade[],
     price: number,
     manager: EntityManager,
-  ) {
+  ): Promise<void> {
     const sellerCredit = trades.reduce((sum, t) => sum + t.quantity * price, 0);
     await this.userService.updateFunds(sellerId, sellerCredit, manager);
 
@@ -501,7 +519,7 @@ export class OrderbookService implements IOrderbookService {
     buyerId: string,
     trades: any[],
     manager: EntityManager,
-  ) {
+  ): Promise<void> {
     const sellerCredits: Record<string, number> = {};
     let buyerDebit = 0;
 
@@ -527,7 +545,8 @@ export class OrderbookService implements IOrderbookService {
     orderId: string | undefined,
     totalQuantity: number,
     manager: EntityManager,
-  ) {
+  ): Promise<void> {
+    if (totalQuantity <= 0) return;
     await this.orderHistoryService.createOrderHistory(
       {
         id: (orderId as string) ?? uuid(),
@@ -549,7 +568,7 @@ export class OrderbookService implements IOrderbookService {
     };
   }
 
-  private logInit(type: 'BUY' | 'SELL', userId: string, info: any) {
+  private logInit(type: 'BUY' | 'SELL', userId: string, info: any): void {
     this.logger.info(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       `${OrderbookService.logInfo} ${type} order init | userId=${userId} | stock=${info.stockName} | qty=${info.quantity} | price=${info.price}`,
@@ -561,7 +580,7 @@ export class OrderbookService implements IOrderbookService {
     userId: string,
     info: any,
     remaining: number,
-  ) {
+  ): void {
     this.logger.info(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       `${OrderbookService.logInfo} ${type} order complete | userId=${userId} | filled=${info.quantity - remaining} | remaining=${remaining}`,

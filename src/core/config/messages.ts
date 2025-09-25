@@ -4,7 +4,6 @@ export const successMessages = {
   ORDER_CANCELLED: 'Order cancelled successfully',
   USER_LOGGED_IN: 'User logged in successfully',
   USER_CREATED: 'User created successfully',
-
   FUND_UPDATED: 'Funds successfully updated',
 } as const;
 

@@ -1,5 +1,5 @@
 import { forwardRef, HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { UserCreateReqDto, UserLoginReqDto } from '../dto';
+import { UserCreateReqDto, UserLoginReqDto, UserOutput } from '../dto';
 import { UserRepository } from '../repository/users.repository';
 import { TokenService } from '../../utils/token/services';
 import { HashService } from '../../utils/hash/hash.service';
@@ -13,6 +13,7 @@ import { LoggerService } from '../../utils/logger/WinstonLogger';
 import { EntityManager, QueryFailedError } from 'typeorm';
 import { OrderbookService } from '../../orderbook/services/orderbook.service';
 import { errorMessages } from '../../core/config/messages';
+import { UserEntity } from '../entities';
 export interface IUserService {
   createUser(data: UserCreateReqDto): Promise<{ user: any; token: string }>;
   loginUser(data: UserLoginReqDto): Promise<{ user: any; token: string }>;
@@ -35,7 +36,7 @@ export class UserService implements IUserService {
   ) {}
   static logInfo = 'Service - User:';
 
-  async createUser(data: UserCreateReqDto) {
+  async createUser(data: UserCreateReqDto): Promise<UserOutput> {
     this.logger.info(
       `${UserService.logInfo} Create User with email: ${data.email}`,
     );
@@ -51,7 +52,7 @@ export class UserService implements IUserService {
         `${UserService.logInfo} Created User with email: ${data.email}`,
       );
       return {
-        user: { ...user },
+        user,
         token: `Bearer ${await this.tokenService.token(token)}`,
       };
     } catch (error) {
@@ -69,7 +70,7 @@ export class UserService implements IUserService {
     }
   }
 
-  async loginUser(data: UserLoginReqDto) {
+  async loginUser(data: UserLoginReqDto): Promise<UserOutput> {
     this.logger.info(
       `${UserService.logInfo} Login User with email: ${data.email}`,
     );
@@ -112,7 +113,7 @@ export class UserService implements IUserService {
     }
   }
 
-  async profile(id: string) {
+  async profile(id: string): Promise<UserEntity> {
     this.logger.info(`${UserService.logInfo} Find User Profile with id: ${id}`);
     try {
       const user = await this.userRepository.getById(id);
@@ -133,7 +134,11 @@ export class UserService implements IUserService {
     }
   }
 
-  async updateFunds(id: string, funds: number, manager?: EntityManager) {
+  async updateFunds(
+    id: string,
+    funds: number,
+    manager?: EntityManager,
+  ): Promise<UserEntity> {
     this.logger.info(
       `${UserService.logInfo} Update Funds for User with id: ${id}`,
     );
@@ -153,11 +158,11 @@ export class UserService implements IUserService {
       }
       user.funds += funds;
 
-      await this.userRepository.save(user, manager);
+      const updatedUser = await this.userRepository.save(user, manager);
       this.logger.info(
         `${UserService.logInfo} Updated Funds for User with id: ${id}`,
       );
-      return user;
+      return updatedUser;
     } catch (error) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this.logger.warn(`${UserService.logInfo} ${error.message} for id: ${id}`);

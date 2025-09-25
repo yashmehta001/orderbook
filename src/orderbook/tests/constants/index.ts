@@ -82,6 +82,7 @@ export const mockCreateSellOrderResponse: ISellTrade = {
   trades: [
     {
       buyOrderId: 'c212e0e8-aa57-46e8-86ea-782bc224e0fe',
+      buyerId: userOutput.id,
       sellUserId: '48ede012-aa2c-4942-b4e0-f5cab919dc7a',
       stockName: mockCreateSellOrderRequest.stockName,
       price: mockCreateSellOrderRequest.price,
@@ -104,6 +105,7 @@ export const mockCreateBuyOrderResponse: IBuyTrade = {
   trades: [
     {
       buyOrderId: 'c212e0e8-aa57-46e8-86ea-782bc224e0fe',
+      buyerId: userOutput.id,
       sellUserId: '48ede012-aa2c-4942-b4e0-f5cab919dc7a',
       stockName: mockCreateBuyOrderRequest.stockName,
       price: mockCreateBuyOrderRequest.price,

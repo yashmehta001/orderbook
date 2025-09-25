@@ -2,15 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { OrderBookEntity } from '../entities/orderbook.entity';
-import { CreateOrderBookReqDto } from '../dto';
+import { CreateOrderBookReqDto, OrderBookRaw } from '../dto';
 import { OrderSideEnum } from '../../core/config';
-
-interface OrderBookRaw {
-  side: string;
-  stockName: string;
-  price: number;
-  quantity: string;
-}
 
 export interface IOrderBookRepository {
   save(
@@ -24,7 +17,7 @@ export interface IOrderBookRepository {
     userId: string,
     stockName?: string,
     side?: OrderSideEnum,
-  ): Promise<any[]>;
+  ): Promise<OrderBookRaw[]>;
 
   getOrderById(id: string, userId: string): Promise<OrderBookEntity | null>;
 
@@ -78,7 +71,7 @@ export class OrderBookRepository implements IOrderBookRepository {
     userId: string,
     stockName: string = '',
     side?: OrderSideEnum,
-  ) {
+  ): Promise<OrderBookRaw[]> {
     const orderBooks = this.orderBookEntity
       .createQueryBuilder('order')
       .select('order.side', 'side')

@@ -14,38 +14,42 @@ export * from './response/get-userOrderBook.dto';
 export interface ISellTrade {
   totalStockSold: number;
   fundsAdded: number;
-  trades: {
-    buyOrderId: string;
-    sellUserId: string;
-    stockName: string;
-    price: number;
-    quantity: number;
-  }[];
+  trades: ITrade[];
   remainingOrder: OrderBookEntity | null;
 }
 
 export interface IBuyTrade {
   totalStockBought: number;
   fundsSpent: number;
-  trades: {
-    buyOrderId: string;
-    sellUserId: string;
-    stockName: string;
-    price: number;
-    quantity: number;
-  }[];
+  trades: ITrade[];
   remainingOrder: OrderBookEntity | null;
 }
 
+export interface OrderBookRaw {
+  side: string;
+  stockName: string;
+  price: number;
+  quantity: string;
+}
+export interface IStockTradeSummary {
+  price: number;
+  quantity: number;
+  stockName: string;
+}
 export interface IOrderBook {
-  BUY: {
-    price: number;
-    quantity: number;
-    stockName: string;
-  }[];
-  SELL: {
-    price: number;
-    quantity: number;
-    stockName: string;
-  }[];
+  BUY: IStockTradeSummary[];
+  SELL: IStockTradeSummary[];
+}
+
+export interface ITrade {
+  buyUserId?: string;
+  sellOrderId?: string;
+  sellerId?: string;
+  id?: string;
+  buyOrderId?: string;
+  sellUserId?: string;
+  stockName: string;
+  buyerId: string;
+  price: number;
+  quantity: number;
 }

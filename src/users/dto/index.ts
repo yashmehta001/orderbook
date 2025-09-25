@@ -1,3 +1,5 @@
+import { UserEntity } from '../entities';
+
 //Request
 export * from './request/create-user.dto';
 export * from './request/login-user.dto';
@@ -8,3 +10,8 @@ export * from './request/manage-funds.dto';
 export * from './response/create-user.dto';
 export * from './response/login-user.dto';
 export * from './response/profile-user.dto';
+
+export interface UserOutput {
+  user: UserEntity;
+  token: string;
+}
