@@ -348,7 +348,7 @@ describe('OrderbookService', () => {
       }
       expect(mockDataSource.release).toHaveBeenCalled();
     });
-    it('should throw error ', async () => {
+    it('should throw error', async () => {
       orderBookRepository.getOrderList.mockRejectedValueOnce(
         new Error('test error'),
       );
