@@ -21,25 +21,25 @@ export const seedUser: UserCreateReqDto = {
 };
 export const seedOrders = [
   {
-    stockName: 'Apple',
+    stockName: 'apple',
     side: OrderSideEnum.BUY,
     quantity: 100,
     price: 150.5,
   },
   {
-    stockName: 'Apple',
+    stockName: 'apple',
     side: OrderSideEnum.SELL,
     quantity: 50,
     price: 155.0,
   },
   {
-    stockName: 'Google',
+    stockName: 'google',
     side: OrderSideEnum.BUY,
     quantity: 200,
     price: 2500.0,
   },
   {
-    stockName: 'Google',
+    stockName: 'google',
     side: OrderSideEnum.SELL,
     quantity: 100,
     price: 2550.0,

@@ -3,15 +3,18 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from '../entities';
 import { Repository } from 'typeorm/repository/Repository';
 import { UserCreateReqDto } from '../dto';
+import { EntityManager } from 'typeorm';
 
 export interface IUserRepository {
-  save(userEntity: UserCreateReqDto): Promise<UserEntity>;
+  save(
+    userInfo: UserCreateReqDto,
+    manager?: EntityManager,
+  ): Promise<UserEntity>;
 
   getByEmail(email: string): Promise<UserEntity | null>;
 
   getById(id: string): Promise<UserEntity | null>;
 }
-
 @Injectable()
 export class UserRepository implements IUserRepository {
   constructor(
@@ -19,13 +22,20 @@ export class UserRepository implements IUserRepository {
     private readonly userEntity: Repository<UserEntity>,
   ) {}
 
-  async save(userInfo: UserCreateReqDto): Promise<UserEntity> {
-    const userEntity = this.userEntity.create(userInfo);
-    return await this.userEntity.save(userEntity);
+  private getRepo(manager?: EntityManager): Repository<UserEntity> {
+    return manager ? manager.getRepository(UserEntity) : this.userEntity;
+  }
+  async save(
+    userInfo: UserCreateReqDto,
+    manager?: EntityManager,
+  ): Promise<UserEntity> {
+    const repo = this.getRepo(manager);
+    const userEntity = repo.create(userInfo);
+    return repo.save(userEntity);
   }
 
   async getByEmail(email: string): Promise<UserEntity | null> {
-    return await this.userEntity.findOne({
+    return this.userEntity.findOne({
       where: {
         email,
       },
@@ -33,7 +43,7 @@ export class UserRepository implements IUserRepository {
   }
 
   async getById(id: string): Promise<UserEntity | null> {
-    return await this.userEntity.findOne({
+    return this.userEntity.findOne({
       where: {
         id,
       },

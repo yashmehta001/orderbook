@@ -1,5 +1,5 @@
 import { forwardRef, HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { UserCreateReqDto, UserLoginReqDto } from '../dto';
+import { UserCreateReqDto, UserLoginReqDto, UserOutput } from '../dto';
 import { UserRepository } from '../repository/users.repository';
 import { TokenService } from '../../utils/token/services';
 import { HashService } from '../../utils/hash/hash.service';
@@ -10,11 +10,18 @@ import {
   translateTypeOrmError,
 } from '../../core/errors';
 import { LoggerService } from '../../utils/logger/WinstonLogger';
-import { QueryFailedError } from 'typeorm';
+import { EntityManager, QueryFailedError } from 'typeorm';
 import { OrderbookService } from '../../orderbook/services/orderbook.service';
-
+import { errorMessages } from '../../core/config/messages';
+import { UserEntity } from '../entities';
+export interface IUserService {
+  createUser(data: UserCreateReqDto): Promise<{ user: any; token: string }>;
+  loginUser(data: UserLoginReqDto): Promise<{ user: any; token: string }>;
+  profile(id: string): Promise<any>;
+  updateFunds(id: string, funds: number, manager?: EntityManager): Promise<any>;
+}
 @Injectable()
-export class UserService {
+export class UserService implements IUserService {
   constructor(
     @Inject(UserRepository)
     private readonly userRepository: UserRepository,
@@ -29,7 +36,7 @@ export class UserService {
   ) {}
   static logInfo = 'Service - User:';
 
-  async createUser(data: UserCreateReqDto) {
+  async createUser(data: UserCreateReqDto): Promise<UserOutput> {
     this.logger.info(
       `${UserService.logInfo} Create User with email: ${data.email}`,
     );
@@ -45,7 +52,7 @@ export class UserService {
         `${UserService.logInfo} Created User with email: ${data.email}`,
       );
       return {
-        user: { ...user },
+        user,
         token: `Bearer ${await this.tokenService.token(token)}`,
       };
     } catch (error) {
@@ -56,13 +63,14 @@ export class UserService {
         throw translateTypeOrmError(error);
       }
       this.logger.warn(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         `${UserService.logInfo} ${error.message} for email: ${data.email}`,
       );
-      throw new error();
+      throw error;
     }
   }
 
-  async loginUser(data: UserLoginReqDto) {
+  async loginUser(data: UserLoginReqDto): Promise<UserOutput> {
     this.logger.info(
       `${UserService.logInfo} Login User with email: ${data.email}`,
     );
@@ -70,7 +78,7 @@ export class UserService {
       const user = await this.userRepository.getByEmail(data.email);
       if (!user) {
         throw new CustomError(
-          `Incorrect Email or Password`,
+          errorMessages.INCORRECT_CREDENTIALS,
           HttpStatus.UNAUTHORIZED,
         );
       }
@@ -80,7 +88,7 @@ export class UserService {
       );
       if (!isEqual) {
         throw new CustomError(
-          `Incorrect Email or Password`,
+          errorMessages.INCORRECT_CREDENTIALS,
           HttpStatus.UNAUTHORIZED,
         );
       }
@@ -98,13 +106,14 @@ export class UserService {
       };
     } catch (error) {
       this.logger.warn(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         `${UserService.logInfo} ${error.message} for email: ${data.email}`,
       );
       throw error;
     }
   }
 
-  async profile(id: string) {
+  async profile(id: string): Promise<UserEntity> {
     this.logger.info(`${UserService.logInfo} Find User Profile with id: ${id}`);
     try {
       const user = await this.userRepository.getById(id);
@@ -119,18 +128,26 @@ export class UserService {
       );
       return user;
     } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this.logger.warn(`${UserService.logInfo} ${error.message} for id: ${id}`);
       throw error;
     }
   }
 
-  async updateFunds(id: string, funds: number) {
+  async updateFunds(
+    id: string,
+    funds: number,
+    manager?: EntityManager,
+  ): Promise<UserEntity> {
     this.logger.info(
       `${UserService.logInfo} Update Funds for User with id: ${id}`,
     );
     try {
       if (!(await this.orderBookService.validateBalance(id, funds)))
-        throw new CustomError('Insufficient Balance');
+        throw new CustomError(
+          errorMessages.INSUFFICIENT_BALANCE,
+          HttpStatus.BAD_REQUEST,
+        );
 
       const user = await this.userRepository.getById(id);
       if (!user) {
@@ -141,12 +158,13 @@ export class UserService {
       }
       user.funds += funds;
 
-      await this.userRepository.save(user);
+      const updatedUser = await this.userRepository.save(user, manager);
       this.logger.info(
         `${UserService.logInfo} Updated Funds for User with id: ${id}`,
       );
-      return user;
+      return updatedUser;
     } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this.logger.warn(`${UserService.logInfo} ${error.message} for id: ${id}`);
       throw error;
     }

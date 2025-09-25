@@ -8,7 +8,7 @@ export class CreateOrderBookResDto {
   id: string;
 
   @Expose()
-  @ApiProperty({ example: 'Google' })
+  @ApiProperty({ example: 'google' })
   stockName: string;
 
   @Expose()

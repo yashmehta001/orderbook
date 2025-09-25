@@ -1,98 +1,227 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+# Orderbook 📈
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Orderbook is a stock trading application built with **NestJS**, **TypeScript**, **TypeORM**, and **PostgreSQL**. It supports creating and managing stock orders (buy/sell), tracking transaction history, and managing user accounts.
 
-## Project setup
+---
 
-```bash
-$ npm install
-```
+## 🚀 Features
 
-## Compile and run the project
+* **User Management**: Create users, login, manage funds, view profiles.
+* **Orderbook**: Place buy/sell orders, match trades, and maintain an orderbook.
+* **Order History**: Track all stock transactions performed.
+* **Swagger API Docs**: Available at `http://localhost:3000/docs`.
+* **Winston Logging**: Logs stored in `logs/combined.json` (extendable to 3rd party services).
+* **Database Seeding**: Development mode includes a seeder that creates an admin user.
+* **Testing**: Unit tests with Jest, including coverage reports.
 
-```bash
-# development
-$ npm run start
+---
 
-# watch mode
-$ npm run start:dev
+## 🛠️ Tech Stack
 
-# production mode
-$ npm run start:prod
-```
+* [NestJS](https://nestjs.com/) (Backend Framework)
+* [TypeScript](https://www.typescriptlang.org/)
+* [TypeORM](https://typeorm.io/) (ORM)
+* [PostgreSQL](https://www.postgresql.org/) (Database)
+* [Swagger](https://swagger.io/) (API Documentation)
+* [Winston](https://github.com/winstonjs/winston) (Logging)
+* [Jest](https://jestjs.io/) (Testing Framework)
 
-## Run tests
+---
+
+## ⚙️ Getting Started
+
+### 1. Clone the repository
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+git clone https://github.com/yashmehta001/orderbook.git
+cd orderbook
 ```
 
-## Deployment
+### 2. Environment Setup
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+* Copy `.env.example` to `.env`
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+cp .env.example .env
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+* This `.env` file will hold your local environment variables.
 
-## Resources
+---
 
-Check out a few resources that may come in handy when working with NestJS:
+### 3. Run with Docker (Recommended) 🐳
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Ensure you have [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed.
 
-## Support
+```bash
+docker compose up -d
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+This will:
 
-## Stay in touch
+* Start PostgreSQL on port `5432`.
+* Run all pending migrations and set up tables.
+* Start the Orderbook app on `http://localhost:3000`.
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+---
 
-## License
+### 4. Run Without Docker
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+#### Install dependencies:
+
+```bash
+npm install
+```
+
+#### Build the project:
+
+```bash
+npm run build
+```
+
+#### Run migrations & start app (production mode):
+
+```bash
+./start.sh
+```
+
+#### Run in development mode:
+
+```bash
+npm run start:dev
+```
+
+---
+
+## 📚 API Documentation
+
+Once the app is running, visit:
+
+👉 [http://localhost:3000/docs](http://localhost:3000/docs)
+
+---
+
+## 🌱 Database Seeder
+
+When `NODE_ENV="development"`, the **AppSeeder** module will automatically inject seed data.
+It creates a default user for login:
+
+```
+email:    admin@orderbook.com
+password: Admin@123
+```
+
+⚠️ Note: The seed module is **only available in development mode**.
+
+---
+
+## 🧪 Testing
+
+Run all unit tests:
+
+```bash
+npm run test
+```
+
+Run tests with coverage:
+
+```bash
+npm run test:cov
+```
+
+* Coverage reports are generated in the `coverage/` folder.
+* Open `coverage/lcov-report/index.html` with Live Server to view the report in a browser.
+* Currently, coverage includes controllers and services.
+
+---
+
+## 🗂️ Project Structure
+
+Each NestJS module (`Orderbook`, `OrderHistory`, `Users`) is divided into the following folders:
+
+* **dto/** → Data Transfer Objects (request/response types)
+* **entities/** → Database entities (tables)
+* **repository/** → Database query logic
+* **services/** → Business logic
+* **tests/** → Unit test cases
+
+---
+
+## 🛢️ Database & Migrations
+
+We use **TypeORM** for database operations.
+
+### Important commands:
+
+* Run all pending migrations:
+
+  ```bash
+  npm run migrations
+  ```
+
+  ⚠️ Note: migrations only run from the build. Run `npm run build` first after creating a migration.
+
+* Create an empty migration:
+
+  ```bash
+  npm run typeorm:create-migration
+  ```
+
+* Generate a migration from entity changes:
+
+  ```bash
+  npm run typeorm:generate-migration
+  ```
+
+* Revert the last migration:
+
+  ```bash
+  npm run typeorm:revert-migration
+  ```
+
+📌 Reminder: Migrations rely heavily on `orm-config.js` being executable without loading the entire app.
+
+---
+
+## 📂 Logging
+
+* Logging is handled by **Winston Logger**.
+* Logs are stored locally at:
+
+  ```
+  logs/combined.json
+  ```
+* Extendable to connect to 3rd party log management services (e.g., Datadog, Logstash, ELK).
+
+---
+
+## 📦 Core Modules
+
+### 1. **Orderbook**
+
+Handles stock order operations: placing buy/sell orders, matching trades, and managing the orderbook.
+
+### 2. **OrderHistory**
+
+Records all stock transactions performed.
+
+### 3. **Users**
+
+Manages user accounts, authentication, profiles, and funds.
+
+---
+
+## ✅ Summary
+
+* Full-featured orderbook system.
+* NestJS + TypeORM + PostgreSQL backend.
+* Docker-ready for local development.
+* Swagger API docs available out of the box.
+* Seed data for development with default admin user.
+* Unit testing with coverage reporting.
+
+---
