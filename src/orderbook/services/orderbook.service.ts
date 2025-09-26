@@ -177,12 +177,8 @@ export class OrderbookService implements IOrderbookService {
     userId: string,
     orderInfo: CreateSellOrderReqDto,
   ): Promise<ISellTrade> {
-    this.logInit('SELL', userId, orderInfo);
-    const queryRunner = this.dataSource.createQueryRunner();
-    try {
-      await queryRunner.connect();
-      await queryRunner.startTransaction();
-      const manager = queryRunner.manager;
+    return this.withTransaction<ISellTrade>(async (manager) => {
+      this.logInit('SELL', userId, orderInfo);
       const existingBuyOrders = await this.orderBookRepository.getOrderList(
         userId,
         orderInfo,
@@ -218,34 +214,20 @@ export class OrderbookService implements IOrderbookService {
       }
 
       this.logComplete('SELL', userId, orderInfo, remainingQuantity);
-      await queryRunner.commitTransaction();
       return {
         totalStockSold: totalQuantity,
         fundsAdded: totalFunds,
         trades,
         remainingOrder,
       };
-    } catch (error) {
-      this.logger.warn(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        `${OrderbookService.logInfo} ${error.message} for userId: ${userId} payload: ${JSON.stringify(orderInfo)}`,
-      );
-      await queryRunner.rollbackTransaction();
-      throw error;
-    } finally {
-      await queryRunner.release();
-    }
+    });
   }
 
   async buyOrder(
     userId: string,
     orderInfo: CreateBuyOrderReqDto,
   ): Promise<IBuyTrade> {
-    const queryRunner = this.dataSource.createQueryRunner();
-    try {
-      await queryRunner.connect();
-      await queryRunner.startTransaction();
-      const manager = queryRunner.manager;
+    return this.withTransaction<IBuyTrade>(async (manager) => {
       this.logInit('BUY', userId, orderInfo);
 
       if (
@@ -288,23 +270,13 @@ export class OrderbookService implements IOrderbookService {
       const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
 
       this.logComplete('BUY', userId, orderInfo, remainingQuantity);
-      await queryRunner.commitTransaction();
       return {
         totalStockBought: totalQuantity,
         fundsSpent: totalFunds,
         trades,
         remainingOrder,
       };
-    } catch (error) {
-      this.logger.warn(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        `${OrderbookService.logInfo} ${error.message} for userId: ${userId} payload: ${JSON.stringify(orderInfo)}`,
-      );
-      await queryRunner.rollbackTransaction();
-      throw error;
-    } finally {
-      await queryRunner.release();
-    }
+    });
   }
 
   async validateBalance(userId: string, updateFunds: number): Promise<boolean> {
@@ -585,5 +557,23 @@ export class OrderbookService implements IOrderbookService {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       `${OrderbookService.logInfo} ${type} order complete | userId=${userId} | filled=${info.quantity - remaining} | remaining=${remaining}`,
     );
+  }
+
+  private async withTransaction<T>(
+    cb: (manager: EntityManager) => Promise<T>,
+  ): Promise<T> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const result = await cb(queryRunner.manager);
+      await queryRunner.commitTransaction();
+      return result;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }
