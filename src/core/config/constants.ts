@@ -17,7 +17,6 @@ export const seedUser: UserCreateReqDto = {
   password: 'Admin@123',
   firstName: 'Admin',
   lastName: 'User',
-  funds: 100000000,
 };
 export const seedOrders = [
   {

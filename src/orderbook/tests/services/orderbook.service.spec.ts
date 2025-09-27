@@ -21,6 +21,7 @@ import { userOutput, userProfileInput } from '../../../users/tests/constants';
 import { OrderSideEnum } from '../../../core/config/constants';
 import { NotFoundException } from '../../../core/errors/notFoundException.error';
 import { mockOrderHistoryItem } from '../../../orderHistory/tests/constants';
+import { MatchingLogicService } from '../../services/matchingLogic.service';
 
 describe('OrderbookService', () => {
   let orderbookService: OrderbookService;
@@ -28,12 +29,15 @@ describe('OrderbookService', () => {
 
   let userService: jest.Mocked<UserService>;
   let orderHistoryService: jest.Mocked<OrderHistoryService>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let matchingLogicService: jest.Mocked<MatchingLogicService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OrderbookService,
         LoggerService,
+        MatchingLogicService,
         {
           provide: UserService,
           useValue: mockUserService(),
@@ -63,6 +67,9 @@ describe('OrderbookService', () => {
     orderHistoryService = module.get<OrderHistoryService>(
       OrderHistoryService,
     ) as jest.Mocked<OrderHistoryService>;
+    matchingLogicService = module.get<MatchingLogicService>(
+      MatchingLogicService,
+    ) as jest.Mocked<MatchingLogicService>;
   });
 
   it('OrderbookService should be defined', () => {

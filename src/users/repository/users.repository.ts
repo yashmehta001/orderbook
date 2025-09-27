@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectDataSource } from '@nestjs/typeorm';
 import { UserEntity } from '../entities';
-import { Repository } from 'typeorm/repository/Repository';
 import { UserCreateReqDto } from '../dto';
-import { EntityManager } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
+import { BaseRepository } from '../../core/entity/BaseRepository';
 
 export interface IUserRepository {
   save(
@@ -16,15 +16,15 @@ export interface IUserRepository {
   getById(id: string): Promise<UserEntity | null>;
 }
 @Injectable()
-export class UserRepository implements IUserRepository {
-  constructor(
-    @InjectRepository(UserEntity)
-    private readonly userEntity: Repository<UserEntity>,
-  ) {}
-
-  private getRepo(manager?: EntityManager): Repository<UserEntity> {
-    return manager ? manager.getRepository(UserEntity) : this.userEntity;
+export class UserRepository
+  extends BaseRepository<UserEntity>
+  implements IUserRepository
+{
+  constructor(@InjectDataSource() dataSource: DataSource) {
+    super(dataSource);
   }
+  protected entity = UserEntity;
+
   async save(
     userInfo: UserCreateReqDto,
     manager?: EntityManager,
@@ -35,18 +35,13 @@ export class UserRepository implements IUserRepository {
   }
 
   async getByEmail(email: string): Promise<UserEntity | null> {
-    return this.userEntity.findOne({
-      where: {
-        email,
-      },
-    });
+    return this.getRepo().findOne({ where: { email } });
   }
 
   async getById(id: string): Promise<UserEntity | null> {
-    return this.userEntity.findOne({
-      where: {
-        id,
-      },
-    });
+    const user = this.getRepo().createQueryBuilder('user');
+    user.where('user.id = :id', { id });
+    user.leftJoinAndSelect('user.wallet', 'wallet');
+    return user.getOne();
   }
 }

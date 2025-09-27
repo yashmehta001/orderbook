@@ -8,16 +8,18 @@ import {
   IOrderBook,
   ISellTrade,
   IStockTradeSummary,
-  ITrade,
 } from '../dto';
 import { errorMessages, OrderSideEnum } from '../../core/config';
 import { CreateSellOrderReqDto } from '../dto/requests/sell-order.dto';
 import { OrderBookEntity } from '../entities/orderbook.entity';
-import { UserService } from '../../users/services/users.service';
 import { OrderHistoryService } from '../../orderHistory/services/orderHistory.service';
 import { v4 as uuid } from 'uuid';
 import { CustomError, NotFoundException } from '../../core/errors';
-import { DataSource, EntityManager } from 'typeorm';
+import { EntityManager } from 'typeorm';
+import { MatchingLogicService } from './matchingLogic.service';
+import { WalletService } from '../../wallet/services/wallet.service';
+import { FundsProcessorService } from './fundsProcessor.service';
+import { TransactionManagerService } from '../../database/services/transaction-manager.service';
 
 export interface IOrderbookService {
   createOrder(
@@ -45,8 +47,6 @@ export interface IOrderbookService {
   ): Promise<ISellTrade>;
 
   buyOrder(userId: string, orderInfo: CreateBuyOrderReqDto): Promise<IBuyTrade>;
-
-  validateBalance(userId: string, updateFunds: number): Promise<boolean>;
 }
 @Injectable()
 export class OrderbookService implements IOrderbookService {
@@ -55,11 +55,12 @@ export class OrderbookService implements IOrderbookService {
     private readonly orderBookRepository: OrderBookRepository,
 
     private readonly logger: LoggerService,
-    @Inject(forwardRef(() => UserService))
-    private readonly userService: UserService,
     private readonly orderHistoryService: OrderHistoryService,
-
-    private readonly dataSource: DataSource,
+    private readonly matchingLogicService: MatchingLogicService,
+    @Inject(forwardRef(() => WalletService))
+    private readonly walletsService: WalletService,
+    private readonly fundsProcessorService: FundsProcessorService,
+    private readonly transactionManagerService: TransactionManagerService,
   ) {}
 
   static logInfo = 'Service - OrderBook:';
@@ -177,268 +178,132 @@ export class OrderbookService implements IOrderbookService {
     userId: string,
     orderInfo: CreateSellOrderReqDto,
   ): Promise<ISellTrade> {
-    return this.withTransaction<ISellTrade>(async (manager) => {
-      this.logInit('SELL', userId, orderInfo);
-      const existingBuyOrders = await this.orderBookRepository.getOrderList(
-        userId,
-        orderInfo,
-      );
-      const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
-        await this.matchOrders({
-          initiatorId: userId,
-          orderInfo,
-          oppositeOrders: existingBuyOrders,
-          isSell: true,
-          manager,
-        });
-      await this.applyOrderBookUpdates(ordersToRemove, ordersToUpdate, manager);
-
-      const remainingOrder = await this.saveRemainingOrder(
-        userId,
-        orderInfo,
-        remainingQuantity,
-        manager,
-      );
-
-      await this.processFundsForSell(userId, trades, orderInfo.price, manager);
-
-      const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
-      if (totalQuantity > 0) {
-        await this.recordOrderHistory(
+    return this.transactionManagerService.runInTransaction<ISellTrade>(
+      async (manager) => {
+        this.logInit('SELL', userId, orderInfo);
+        const existingBuyOrders = await this.orderBookRepository.getOrderList(
           userId,
           orderInfo,
-          remainingOrder?.id,
-          totalQuantity,
+        );
+        const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
+          await this.matchingLogicService.matchOrders({
+            initiatorId: userId,
+            orderInfo,
+            oppositeOrders: existingBuyOrders,
+            isSell: true,
+            manager,
+          });
+        await this.applyOrderBookUpdates(
+          ordersToRemove,
+          ordersToUpdate,
           manager,
         );
-      }
 
-      this.logComplete('SELL', userId, orderInfo, remainingQuantity);
-      return {
-        totalStockSold: totalQuantity,
-        fundsAdded: totalFunds,
-        trades,
-        remainingOrder,
-      };
-    });
+        const remainingOrder = await this.saveRemainingOrder(
+          userId,
+          orderInfo,
+          remainingQuantity,
+          manager,
+        );
+
+        await this.fundsProcessorService.processFundsForSell(
+          userId,
+          trades,
+          orderInfo.price,
+          manager,
+        );
+
+        const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
+        if (totalQuantity > 0) {
+          await this.recordOrderHistory(
+            userId,
+            orderInfo,
+            remainingOrder?.id,
+            totalQuantity,
+            manager,
+          );
+        }
+
+        this.logComplete('SELL', userId, orderInfo, remainingQuantity);
+        return {
+          totalStockSold: totalQuantity,
+          fundsAdded: totalFunds,
+          trades,
+          remainingOrder,
+        };
+      },
+    );
   }
 
   async buyOrder(
     userId: string,
     orderInfo: CreateBuyOrderReqDto,
   ): Promise<IBuyTrade> {
-    return this.withTransaction<IBuyTrade>(async (manager) => {
-      this.logInit('BUY', userId, orderInfo);
+    return this.transactionManagerService.runInTransaction<IBuyTrade>(
+      async (manager) => {
+        this.logInit('BUY', userId, orderInfo);
 
-      if (
-        !(await this.validateBalance(
+        if (
+          !(await this.walletsService.validateBalance(
+            userId,
+            orderInfo.price * orderInfo.quantity,
+          ))
+        ) {
+          throw new CustomError(errorMessages.INSUFFICIENT_BALANCE);
+        }
+
+        const existingSellOrders = await this.orderBookRepository.getOrderList(
           userId,
-          -orderInfo.price * orderInfo.quantity,
-        ))
-      ) {
-        throw new CustomError(errorMessages.INSUFFICIENT_BALANCE);
-      }
-
-      const existingSellOrders = await this.orderBookRepository.getOrderList(
-        userId,
-        orderInfo,
-      );
-
-      const id: string = uuid();
-      const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
-        await this.matchOrders({
-          initiatorId: userId,
           orderInfo,
-          oppositeOrders: existingSellOrders,
-          isSell: false,
+        );
+
+        const id: string = uuid();
+        const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
+          await this.matchingLogicService.matchOrders({
+            initiatorId: userId,
+            orderInfo,
+            oppositeOrders: existingSellOrders,
+            isSell: false,
+            manager,
+            orderId: id,
+          });
+
+        await this.applyOrderBookUpdates(
+          ordersToRemove,
+          ordersToUpdate,
           manager,
-          orderId: id,
-        });
+        );
 
-      await this.applyOrderBookUpdates(ordersToRemove, ordersToUpdate, manager);
+        const remainingOrder = await this.saveRemainingOrder(
+          userId,
+          orderInfo,
+          remainingQuantity,
+          manager,
+          id,
+        );
 
-      const remainingOrder = await this.saveRemainingOrder(
-        userId,
-        orderInfo,
-        remainingQuantity,
-        manager,
-        id,
-      );
+        await this.fundsProcessorService.processFundsForBuy(
+          userId,
+          trades,
+          manager,
+        );
 
-      await this.processFundsForBuy(userId, trades, manager);
+        const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
 
-      const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
-
-      this.logComplete('BUY', userId, orderInfo, remainingQuantity);
-      return {
-        totalStockBought: totalQuantity,
-        fundsSpent: totalFunds,
-        trades,
-        remainingOrder,
-      };
-    });
-  }
-
-  async validateBalance(userId: string, updateFunds: number): Promise<boolean> {
-    try {
-      if (updateFunds > 0) return true;
-
-      const { funds } = await this.userService.profile(userId);
-      const presentBuyOrders = await this.getOrdersByUserId(
-        userId,
-        OrderSideEnum.BUY,
-      );
-
-      const pledged = presentBuyOrders.reduce(
-        (sum, o) => sum + (o?.price ?? 0) * (o?.quantity ?? 0) * -1,
-        0,
-      );
-
-      return funds + updateFunds + pledged >= 0;
-    } catch (error) {
-      this.logger.warn(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        `${OrderbookService.logInfo} ${error.message} for userId: ${userId} payload: ${updateFunds}`,
-      );
-      throw error;
-    }
+        this.logComplete('BUY', userId, orderInfo, remainingQuantity);
+        return {
+          totalStockBought: totalQuantity,
+          fundsSpent: totalFunds,
+          trades,
+          remainingOrder,
+        };
+      },
+    );
   }
 
   /* -------------------------------------------------------------------------- */
   /*                              PRIVATE HELPERS                               */
   /* -------------------------------------------------------------------------- */
-
-  private async matchOrders(params: {
-    initiatorId: string;
-    orderInfo: CreateBuyOrderReqDto | CreateSellOrderReqDto;
-    oppositeOrders: OrderBookEntity[];
-    isSell: boolean;
-    manager: EntityManager;
-    orderId?: string;
-  }) {
-    const { initiatorId, orderInfo, oppositeOrders, isSell, orderId, manager } =
-      params;
-    let remainingQuantity = orderInfo.quantity;
-    const trades: ITrade[] = [];
-    const ordersToRemove: string[] = [];
-    const ordersToUpdate: { id: string; quantity: number }[] = [];
-
-    for (const opposite of oppositeOrders) {
-      if (remainingQuantity <= 0) break;
-
-      const availableQty = opposite.quantity;
-      const tradeQty = Math.min(remainingQuantity, availableQty);
-
-      const trade = isSell
-        ? this.buildSellTrade(opposite, initiatorId, orderInfo, tradeQty)
-        : this.buildBuyTrade(
-            opposite,
-            initiatorId,
-            orderInfo,
-            tradeQty,
-            orderId!,
-          );
-
-      trades.push(trade);
-      if (trade.quantity > 0) {
-        await this.recordTradeHistory(
-          isSell,
-          initiatorId,
-          opposite,
-          orderInfo,
-          tradeQty,
-          manager,
-          orderId,
-        );
-      }
-
-      if (availableQty <= remainingQuantity) {
-        ordersToRemove.push(opposite.id);
-      } else {
-        ordersToUpdate.push({
-          id: opposite.id,
-          quantity: availableQty - tradeQty,
-        });
-      }
-
-      remainingQuantity -= tradeQty;
-    }
-
-    return { trades, ordersToRemove, ordersToUpdate, remainingQuantity };
-  }
-
-  private buildSellTrade(
-    opposite: OrderBookEntity,
-    sellerId: string,
-    orderInfo: CreateSellOrderReqDto,
-    qty: number,
-  ): ITrade {
-    return {
-      buyOrderId: opposite.id,
-      buyerId: opposite?.user?.id,
-      sellUserId: sellerId,
-      stockName: orderInfo.stockName,
-      price: orderInfo.price,
-      quantity: qty,
-    };
-  }
-
-  private buildBuyTrade(
-    opposite: OrderBookEntity,
-    buyerId: string,
-    orderInfo: CreateBuyOrderReqDto,
-    qty: number,
-    orderId: string,
-  ): ITrade {
-    return {
-      buyerId: buyerId,
-      sellOrderId: opposite.id,
-      sellerId: opposite?.user?.id,
-      stockName: orderInfo.stockName,
-      price: opposite.price,
-      quantity: qty,
-      id: orderId,
-    };
-  }
-
-  private async recordTradeHistory(
-    isSell: boolean,
-    initiatorId: string,
-    opposite: OrderBookEntity,
-    orderInfo: CreateBuyOrderReqDto | CreateSellOrderReqDto,
-    quantity: number,
-    manager: EntityManager,
-    orderId?: string,
-  ): Promise<void> {
-    if (isSell) {
-      await this.orderHistoryService.createOrderHistory(
-        {
-          ...opposite,
-          price: orderInfo.price,
-          quantity,
-        },
-        manager,
-      );
-    } else {
-      await this.orderHistoryService.createOrderHistory(
-        {
-          ...opposite,
-          quantity,
-        },
-        manager,
-      );
-      await this.orderHistoryService.createOrderHistory(
-        {
-          ...orderInfo,
-          user: { id: initiatorId },
-          id: (orderId as string) ?? uuid(),
-          quantity,
-          price: opposite.price,
-        },
-        manager,
-      );
-    }
-  }
 
   private async applyOrderBookUpdates(
     remove: string[],
@@ -467,49 +332,49 @@ export class OrderbookService implements IOrderbookService {
     );
   }
 
-  private async processFundsForSell(
-    sellerId: string,
-    trades: ITrade[],
-    price: number,
-    manager: EntityManager,
-  ): Promise<void> {
-    const sellerCredit = trades.reduce((sum, t) => sum + t.quantity * price, 0);
-    await this.userService.updateFunds(sellerId, sellerCredit, manager);
+  // private async processFundsForSell(
+  //   sellerId: string,
+  //   trades: ITrade[],
+  //   price: number,
+  //   manager: EntityManager,
+  // ): Promise<void> {
+  //   const sellerCredit = trades.reduce((sum, t) => sum + t.quantity * price, 0);
+  //   await this.walletsService.updateUserFunds(sellerId, sellerCredit, manager);
 
-    const buyerDebits: Record<string, number> = {};
-    for (const { buyerId, quantity, price: tradePrice } of trades) {
-      buyerDebits[buyerId] =
-        (buyerDebits[buyerId] || 0) - quantity * tradePrice;
-    }
+  //   const buyerDebits: Record<string, number> = {};
+  //   for (const { buyerId, quantity, price: tradePrice } of trades) {
+  //     buyerDebits[buyerId] =
+  //       (buyerDebits[buyerId] || 0) - quantity * tradePrice;
+  //   }
 
-    for (const [buyerId, deltaFunds] of Object.entries(buyerDebits)) {
-      await this.userService.updateFunds(buyerId, deltaFunds, manager);
-    }
-  }
+  //   for (const [buyerId, deltaFunds] of Object.entries(buyerDebits)) {
+  //     await this.walletsService.updateUserFunds(buyerId, deltaFunds, manager);
+  //   }
+  // }
 
-  private async processFundsForBuy(
-    buyerId: string,
-    trades: any[],
-    manager: EntityManager,
-  ): Promise<void> {
-    const sellerCredits: Record<string, number> = {};
-    let buyerDebit = 0;
+  // private async processFundsForBuy(
+  //   buyerId: string,
+  //   trades: any[],
+  //   manager: EntityManager,
+  // ): Promise<void> {
+  //   const sellerCredits: Record<string, number> = {};
+  //   let buyerDebit = 0;
 
-    for (const { sellerId, quantity, price } of trades) {
-      const total = quantity * price;
-      buyerDebit -= total;
-      const sellerKey: string = String(sellerId);
-      sellerCredits[sellerKey] = (sellerCredits[sellerKey] || 0) + total;
-    }
+  //   for (const { sellerId, quantity, price } of trades) {
+  //     const total = quantity * price;
+  //     buyerDebit -= total;
+  //     const sellerKey: string = String(sellerId);
+  //     sellerCredits[sellerKey] = (sellerCredits[sellerKey] || 0) + total;
+  //   }
 
-    await this.userService.updateFunds(buyerId, buyerDebit, manager);
+  //   await this.walletsService.updateUserFunds(buyerId, buyerDebit, manager);
 
-    await Promise.all(
-      Object.entries(sellerCredits).map(([sellerId, delta]) => {
-        return this.userService.updateFunds(sellerId, delta, manager);
-      }),
-    );
-  }
+  //   await Promise.all(
+  //     Object.entries(sellerCredits).map(([sellerId, delta]) => {
+  //       return this.walletsService.updateUserFunds(sellerId, delta, manager);
+  //     }),
+  //   );
+  // }
 
   private async recordOrderHistory(
     userId: string,
@@ -559,21 +424,21 @@ export class OrderbookService implements IOrderbookService {
     );
   }
 
-  private async withTransaction<T>(
-    cb: (manager: EntityManager) => Promise<T>,
-  ): Promise<T> {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-    try {
-      const result = await cb(queryRunner.manager);
-      await queryRunner.commitTransaction();
-      return result;
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      throw error;
-    } finally {
-      await queryRunner.release();
-    }
-  }
+  // private async withTransaction<T>(
+  //   cb: (manager: EntityManager) => Promise<T>,
+  // ): Promise<T> {
+  //   const queryRunner = this.dataSource.createQueryRunner();
+  //   await queryRunner.connect();
+  //   await queryRunner.startTransaction();
+  //   try {
+  //     const result = await cb(queryRunner.manager);
+  //     await queryRunner.commitTransaction();
+  //     return result;
+  //   } catch (error) {
+  //     await queryRunner.rollbackTransaction();
+  //     throw error;
+  //   } finally {
+  //     await queryRunner.release();
+  //   }
+  // }
 }

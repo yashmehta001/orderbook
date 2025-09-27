@@ -1,13 +1,5 @@
-import {
-  IsEmail,
-  IsNotEmpty,
-  IsNumber,
-  IsString,
-  MaxLength,
-  Min,
-} from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
 import { IsNotBlank } from '../../../utils/decorators';
 
 export class UserCreateReqDto {
@@ -48,14 +40,4 @@ export class UserCreateReqDto {
     required: false,
   })
   password: string;
-
-  @Type(() => Number)
-  @IsNumber({}, { message: 'Funds must be a valid number' })
-  @Min(0, { message: 'Funds cannot be negative' })
-  @ApiProperty({
-    example: 0,
-    required: false,
-    default: 0,
-  })
-  funds: number;
 }

@@ -7,5 +7,4 @@ export const mockOrderBookService = (): IOrderbookService => ({
   deleteOrder: jest.fn(),
   sellOrder: jest.fn(),
   buyOrder: jest.fn(),
-  validateBalance: jest.fn(),
 });
