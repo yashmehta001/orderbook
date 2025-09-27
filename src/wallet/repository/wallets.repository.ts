@@ -3,9 +3,13 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager } from 'typeorm';
 import { BaseRepository } from '../../core/entity/BaseRepository';
 import { WalletEntity } from '../entities/wallet.entity';
+import { IWalletsRepository } from '../interfaces/wallets-repository.interface';
 
 @Injectable()
-export class WalletsRepository extends BaseRepository<WalletEntity> {
+export class WalletsRepository
+  extends BaseRepository<WalletEntity>
+  implements IWalletsRepository
+{
   constructor(@InjectDataSource() dataSource: DataSource) {
     super(dataSource);
   }
