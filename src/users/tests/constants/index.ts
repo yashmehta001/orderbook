@@ -18,7 +18,6 @@ export const userOutput: UserEntity = {
   firstName: 'John',
   lastName: 'Doe',
   email: 'john.doe@example.com',
-  funds: 1000,
   password: 'hashed-password',
   auditInfo: {
     createdAt: new Date('2023-01-01T00:00:00.000Z'),
