@@ -4,5 +4,4 @@ export const mockUserService = (): IUserService => ({
   createUser: jest.fn(),
   loginUser: jest.fn(),
   profile: jest.fn(),
-  updateFunds: jest.fn(),
 });

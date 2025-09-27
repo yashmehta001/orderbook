@@ -1,4 +1,4 @@
-import { forwardRef, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { UserCreateReqDto, UserLoginReqDto, UserOutput } from '../dto';
 import { UserRepository } from '../repository/users.repository';
 import { TokenService } from '../../utils/token/services';
@@ -10,15 +10,14 @@ import {
   translateTypeOrmError,
 } from '../../core/errors';
 import { LoggerService } from '../../utils/logger/WinstonLogger';
-import { EntityManager, QueryFailedError } from 'typeorm';
-import { OrderbookService } from '../../orderbook/services/orderbook.service';
+import { QueryFailedError } from 'typeorm';
 import { errorMessages } from '../../core/config/messages';
 import { UserEntity } from '../entities';
+import { WalletService } from '../../wallet/services/wallet.service';
 export interface IUserService {
   createUser(data: UserCreateReqDto): Promise<{ user: any; token: string }>;
   loginUser(data: UserLoginReqDto): Promise<{ user: any; token: string }>;
   profile(id: string): Promise<any>;
-  updateFunds(id: string, funds: number, manager?: EntityManager): Promise<any>;
 }
 @Injectable()
 export class UserService implements IUserService {
@@ -31,8 +30,8 @@ export class UserService implements IUserService {
     private readonly hashService: HashService,
 
     private readonly tokenService: TokenService,
-    @Inject(forwardRef(() => OrderbookService))
-    private readonly orderBookService: OrderbookService,
+
+    private readonly walletService: WalletService,
   ) {}
   static logInfo = 'Service - User:';
 
@@ -48,6 +47,7 @@ export class UserService implements IUserService {
         email: user.email,
         userType: UserType.USER,
       };
+      await this.walletService.updateUserFunds(user.id);
       this.logger.info(
         `${UserService.logInfo} Created User with email: ${data.email}`,
       );
@@ -127,42 +127,6 @@ export class UserService implements IUserService {
         `${UserService.logInfo} Found User Profile with id: ${id}`,
       );
       return user;
-    } catch (error) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      this.logger.warn(`${UserService.logInfo} ${error.message} for id: ${id}`);
-      throw error;
-    }
-  }
-
-  async updateFunds(
-    id: string,
-    funds: number,
-    manager?: EntityManager,
-  ): Promise<UserEntity> {
-    this.logger.info(
-      `${UserService.logInfo} Update Funds for User with id: ${id}`,
-    );
-    try {
-      if (!(await this.orderBookService.validateBalance(id, funds)))
-        throw new CustomError(
-          errorMessages.INSUFFICIENT_BALANCE,
-          HttpStatus.BAD_REQUEST,
-        );
-
-      const user = await this.userRepository.getById(id);
-      if (!user) {
-        this.logger.warn(
-          `${UserService.logInfo} Not Found! User with id: ${id}`,
-        );
-        throw new NotFoundException();
-      }
-      user.funds += funds;
-
-      const updatedUser = await this.userRepository.save(user, manager);
-      this.logger.info(
-        `${UserService.logInfo} Updated Funds for User with id: ${id}`,
-      );
-      return updatedUser;
     } catch (error) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this.logger.warn(`${UserService.logInfo} ${error.message} for id: ${id}`);

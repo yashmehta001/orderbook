@@ -11,7 +11,6 @@ export const createUserInput: UserCreateReqDto = {
   lastName: 'doe',
   email: 'john@doe.com',
   password: '123456',
-  funds: 0,
 };
 
 export const userOutput: UserEntity = {
@@ -28,6 +27,7 @@ export const userOutput: UserEntity = {
   },
   orders: [],
   orderHistory: [],
+  wallet: undefined,
 };
 
 export const loginUserInput: UserLoginReqDto = {
