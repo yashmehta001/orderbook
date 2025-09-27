@@ -19,7 +19,7 @@ import { EntityManager } from 'typeorm';
 import { MatchingLogicService } from './matchingLogic.service';
 import { WalletService } from '../../wallet/services/wallet.service';
 import { FundsProcessorService } from './fundsProcessor.service';
-import { TransactionManagerService } from 'src/database/services/transaction-manager.service';
+import { TransactionManagerService } from '../../database/services/transaction-manager.service';
 
 export interface IOrderbookService {
   createOrder(

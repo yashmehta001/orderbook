@@ -32,7 +32,7 @@ export class FundsProcessorService {
 
   public async processFundsForBuy(
     buyerId: string,
-    trades: any[],
+    trades: ITrade[],
     manager: EntityManager,
   ): Promise<void> {
     const sellerCredits: Record<string, number> = {};
