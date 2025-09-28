@@ -7,6 +7,7 @@ import {
   mockOrderBookBuyDataExcessOrder,
   mockOrderBookBuyDataRemainingOrder,
   mockOrderBookSellData,
+  mockOrderBookSellDataV2,
 } from '../constants';
 import { userOutput } from '../../users/constants';
 import { EntityManager } from 'typeorm';
@@ -156,6 +157,37 @@ describe('MatchingLogicService', () => {
       expect(result.remainingQuantity).toBe(2);
       expect(result.ordersToRemove).toEqual([
         mockOrderBookBuyDataExcessOrder.id,
+      ]);
+      expect(result.ordersToUpdate).toEqual([]);
+    });
+
+    it('should handle buy matches with no remaining quantity', async () => {
+      const initiatorId = 'initiator-id';
+      const orderInfo = mockOrderBookBuyDataExcessOrder;
+      const isSell = false;
+      const manager = {} as EntityManager; // Mock EntityManager
+      const orderId = 'new-order-id';
+
+      const result = await matchingLogicService.matchOrders({
+        initiatorId,
+        orderInfo,
+        oppositeOrders: [
+          mockOrderBookSellData,
+          mockOrderBookSellDataV2,
+          mockOrderBookSellDataV2,
+        ],
+        isSell,
+        manager,
+        orderId,
+      });
+
+      expect(result.trades.length).toBe(2);
+      expect(result.trades[0].quantity).toBe(3);
+      expect(result.trades[1].quantity).toBe(2);
+      expect(result.remainingQuantity).toBe(0);
+      expect(result.ordersToRemove).toEqual([
+        mockOrderBookSellData.id,
+        mockOrderBookSellDataV2.id,
       ]);
       expect(result.ordersToUpdate).toEqual([]);
     });

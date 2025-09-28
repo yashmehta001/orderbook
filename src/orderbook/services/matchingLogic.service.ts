@@ -39,6 +39,7 @@ export class MatchingLogicService implements IMatchingLogicService {
     const ordersToUpdate: { id: string; quantity: number }[] = [];
 
     for (const opposite of oppositeOrders) {
+      if (remainingQuantity <= 0) break;
       const availableQty = opposite.quantity;
       const tradeQty = Math.min(remainingQuantity, availableQty);
 

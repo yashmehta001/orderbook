@@ -64,6 +64,19 @@ export const mockOrderBookSellData: OrderBookEntity = {
   },
   generateId: () => 'mock-id',
 };
+export const mockOrderBookSellDataV2: OrderBookEntity = {
+  id: 'c212e0e8-aa57-46e8-86ea-782bc224e0fe',
+  stockName: 'apple',
+  side: OrderSideEnum.SELL,
+  price: 300,
+  quantity: 2,
+  user: userOutput,
+  auditInfo: {
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  generateId: () => 'mock-id',
+};
 export const mockCreateSellOrderRequest: CreateSellOrderReqDto = {
   stockName: 'apple',
   side: OrderSideEnum.SELL,
