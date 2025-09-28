@@ -23,11 +23,13 @@ import {
   mockOrderBookBuyDataExcessOrder,
   mockOrderBookBuyDataRemainingOrder,
   mockRawOrders,
+  mockTrade,
 } from '../constants';
 import { userProfileInput } from '../../users/constants';
 import { OrderSideEnum } from '../../../src/core/config';
 import { NotFoundException } from '../../../src/core/errors';
 import { mockWalletsRepository } from '../../wallet/mocks/wallet.repository.mock';
+import { mockWalletService } from '../../wallet/mocks/wallet.service.mock';
 
 describe('OrderbookService', () => {
   let orderbookService: OrderbookService;
@@ -46,7 +48,6 @@ describe('OrderbookService', () => {
       providers: [
         OrderbookService,
         LoggerService,
-        WalletService,
         TransactionManagerService,
         {
           provide: 'IMatchingLogicService',
@@ -71,6 +72,10 @@ describe('OrderbookService', () => {
         {
           provide: 'IWalletsRepository',
           useFactory: mockWalletsRepository,
+        },
+        {
+          provide: WalletService,
+          useFactory: mockWalletService,
         },
         {
           provide: DataSource,
@@ -259,99 +264,154 @@ describe('OrderbookService', () => {
       }
     });
   });
+  describe('sellOrder', () => {
+    it('should process a sell order with excess quantity correctly', async () => {
+      orderBookRepository.save.mockResolvedValue(mockOrderBookBuyData);
+      matchingLogicService.matchOrders.mockResolvedValue({
+        trades: [mockTrade],
+        ordersToRemove: [],
+        ordersToUpdate: [],
+        remainingQuantity: 0,
+      });
+      orderBookRepository.bulkRemoveOrders.mockResolvedValue();
+      orderBookRepository.save.mockResolvedValue(
+        mockOrderBookBuyDataRemainingOrder,
+      );
+      fundsProcessorService.processFundsForSell.mockResolvedValue();
+      matchingLogicService.recordOrderHistory.mockResolvedValue();
 
-  // describe('sellOrder', () => {
-  //   it('should sell an order successfully', async () => {
-  //     orderBookRepository.getOrderList.mockResolvedValueOnce([
-  //       mockOrderBookBuyData,
-  //     ]);
-  //     orderHistoryService.createOrderHistory.mockResolvedValueOnce(
-  //       mockOrderHistoryItem,
-  //     );
-  //     await orderbookService.sellOrder(
-  //       userProfileInput.id,
-  //       mockCreateOrderRequest,
-  //     );
-  //     expect(mockDataSource.release).toHaveBeenCalled();
-  //   });
-  //   it('should sell an order successfully - remaining order', async () => {
-  //     orderBookRepository.getOrderList.mockResolvedValueOnce([
-  //       mockOrderBookBuyDataRemainingOrder,
-  //     ]);
-  //     await orderbookService.sellOrder(
-  //       userProfileInput.id,
-  //       mockCreateOrderRequest,
-  //     );
-  //     expect(mockDataSource.release).toHaveBeenCalled();
-  //   });
-  //   it('should sell an order successfully - excess order', async () => {
-  //     orderBookRepository.getOrderList.mockResolvedValueOnce([
-  //       mockOrderBookBuyDataExcessOrder,
-  //     ]);
-  //     await orderbookService.sellOrder(
-  //       userProfileInput.id,
-  //       mockCreateOrderRequest,
-  //     );
-  //     expect(mockDataSource.release).toHaveBeenCalled();
-  //   });
-  //   it('should throw error', async () => {
-  //     orderBookRepository.getOrderList.mockRejectedValueOnce(
-  //       new Error('test error'),
-  //     );
-  //     try {
-  //       await orderbookService.sellOrder(
-  //         userProfileInput.id,
-  //         mockCreateOrderRequest,
-  //       );
-  //     } catch (error) {
-  //       expect(error).toBeInstanceOf(Object);
-  //     }
-  //     expect(mockDataSource.release).toHaveBeenCalled();
-  //   });
-  // });
+      const result = await orderbookService.sellOrder(
+        userProfileInput.id,
+        mockCreateOrderRequest,
+      );
 
-  // describe('buyOrder', () => {
-  //   it('should buy an order successfully', async () => {
-  //     orderBookRepository.getOrderList.mockResolvedValueOnce([
-  //       mockOrderBookSellData,
-  //     ]);
-  //     userService.profile.mockResolvedValueOnce(userOutput);
-  //     await orderbookService.buyOrder(
-  //       userProfileInput.id,
-  //       mockCreateBuyOrderRequest,
-  //     );
-  //     expect(mockDataSource.release).toHaveBeenCalled();
-  //   });
+      expect(result).toEqual({
+        trades: [mockTrade],
+        fundsAdded: 400,
+        totalStockSold: 2,
+        remainingOrder: null,
+      });
+    });
+    it('should process a sell order with excess quantity correctly', async () => {
+      orderBookRepository.save.mockResolvedValue(mockOrderBookBuyData);
+      matchingLogicService.matchOrders.mockResolvedValue({
+        trades: [mockTrade],
+        ordersToRemove: [],
+        ordersToUpdate: [],
+        remainingQuantity: 1,
+      });
+      orderBookRepository.bulkRemoveOrders.mockResolvedValue();
+      orderBookRepository.save.mockResolvedValue(
+        mockOrderBookBuyDataRemainingOrder,
+      );
+      fundsProcessorService.processFundsForSell.mockResolvedValue();
+      matchingLogicService.recordOrderHistory.mockResolvedValue();
 
-  //   it('should throw error with insufficient balance', async () => {
-  //     orderBookRepository.getOrderList.mockResolvedValueOnce([
-  //       mockOrderBookSellData,
-  //     ]);
-  //     userService.profile.mockResolvedValueOnce(userOutput);
-  //     try {
-  //       await orderbookService.buyOrder(
-  //         userProfileInput.id,
-  //         mockCreateBuyOrderRequest,
-  //       );
-  //     } catch (error) {
-  //       expect(error).toBeInstanceOf(Object);
-  //     }
-  //     expect(mockDataSource.release).toHaveBeenCalled();
-  //   });
-  //   it('should throw error', async () => {
-  //     orderBookRepository.getOrderList.mockRejectedValueOnce(
-  //       new Error('test error'),
-  //     );
-  //     userService.profile.mockResolvedValueOnce(userOutput);
-  //     try {
-  //       await orderbookService.buyOrder(
-  //         userProfileInput.id,
-  //         mockCreateBuyOrderRequest,
-  //       );
-  //     } catch (error) {
-  //       expect(error).toBeInstanceOf(Object);
-  //     }
-  //     expect(mockDataSource.release).toHaveBeenCalled();
-  //   });
-  // });
+      const result = await orderbookService.sellOrder(
+        userProfileInput.id,
+        mockCreateOrderRequest,
+      );
+
+      expect(result).toEqual({
+        trades: [mockTrade],
+        fundsAdded: 400,
+        totalStockSold: 2,
+        remainingOrder: mockOrderBookBuyDataRemainingOrder,
+      });
+    });
+    it('should process a sell order with update and remove', async () => {
+      orderBookRepository.save.mockResolvedValue(mockOrderBookBuyData);
+      matchingLogicService.matchOrders.mockResolvedValue({
+        trades: [mockTrade],
+        ordersToRemove: ['order-to-remove-id'],
+        ordersToUpdate: [{ id: 'order-to-update-id', quantity: 5 }],
+        remainingQuantity: 1,
+      });
+      orderBookRepository.bulkRemoveOrders.mockResolvedValue();
+      orderBookRepository.bulkUpdateQuantities.mockResolvedValue();
+      orderBookRepository.save.mockResolvedValue(
+        mockOrderBookBuyDataRemainingOrder,
+      );
+      fundsProcessorService.processFundsForSell.mockResolvedValue();
+      matchingLogicService.recordOrderHistory.mockResolvedValue();
+
+      const result = await orderbookService.sellOrder(
+        userProfileInput.id,
+        mockCreateOrderRequest,
+      );
+
+      expect(result).toEqual({
+        trades: [mockTrade],
+        fundsAdded: 400,
+        totalStockSold: 2,
+        remainingOrder: mockOrderBookBuyDataRemainingOrder,
+      });
+    });
+  });
+
+  describe('buyOrder', () => {
+    it('should process a buy order with excess quantity correctly', async () => {
+      orderBookRepository.save.mockResolvedValue(mockOrderBookBuyData);
+      matchingLogicService.matchOrders.mockResolvedValue({
+        trades: [mockTrade],
+        ordersToRemove: [],
+        ordersToUpdate: [],
+        remainingQuantity: 0,
+      });
+      orderBookRepository.bulkRemoveOrders.mockResolvedValue();
+      orderBookRepository.save.mockResolvedValue(
+        mockOrderBookBuyDataRemainingOrder,
+      );
+      fundsProcessorService.processFundsForBuy.mockResolvedValue();
+      matchingLogicService.recordOrderHistory.mockResolvedValue();
+
+      walletService.validateBalance.mockResolvedValue(true);
+
+      const result = await orderbookService.buyOrder(
+        userProfileInput.id,
+        mockCreateOrderRequest,
+      );
+
+      expect(result).toEqual({
+        trades: [mockTrade],
+        fundsSpent: 400,
+        totalStockBought: 2,
+        remainingOrder: null,
+      });
+    });
+    it('should process a buy order with remaining quantity correctly', async () => {
+      orderBookRepository.save.mockResolvedValue(mockOrderBookBuyData);
+      matchingLogicService.matchOrders.mockResolvedValue({
+        trades: [mockTrade],
+        ordersToRemove: [],
+        ordersToUpdate: [],
+        remainingQuantity: 1,
+      });
+      orderBookRepository.bulkRemoveOrders.mockResolvedValue();
+      orderBookRepository.save.mockResolvedValue(
+        mockOrderBookBuyDataRemainingOrder,
+      );
+      fundsProcessorService.processFundsForBuy.mockResolvedValue();
+      matchingLogicService.recordOrderHistory.mockResolvedValue();
+      walletService.validateBalance.mockResolvedValue(true);
+      const result = await orderbookService.buyOrder(
+        userProfileInput.id,
+        mockCreateOrderRequest,
+      );
+
+      expect(result).toEqual({
+        trades: [mockTrade],
+        fundsSpent: 400,
+        totalStockBought: 2,
+        remainingOrder: mockOrderBookBuyDataRemainingOrder,
+      });
+    });
+    it('should throw error if wallet balance is insufficient', async () => {
+      walletService.validateBalance.mockResolvedValue(false);
+
+      await expect(
+        orderbookService.buyOrder(userProfileInput.id, mockCreateOrderRequest),
+      ).rejects.toThrow('Insufficient Balance');
+    });
+  });
 });

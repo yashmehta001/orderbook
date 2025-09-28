@@ -22,15 +22,13 @@ describe('OrderHistoryService', () => {
         OrderHistoryService,
         LoggerService,
         {
-          provide: OrderHistoryRepository,
+          provide: 'IOrderHistoryRepository',
           useFactory: mockOrderHistoryRepository,
         },
       ],
     }).compile();
     orderHistoryService = module.get<OrderHistoryService>(OrderHistoryService);
-    orderHistoryRepository = module.get<OrderHistoryRepository>(
-      OrderHistoryRepository,
-    ) as jest.Mocked<OrderHistoryRepository>;
+    orderHistoryRepository = module.get('IOrderHistoryRepository');
   });
 
   it('OrderHistoryService should be defined', () => {

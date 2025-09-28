@@ -1,17 +1,20 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { LoggerService } from '../../utils/logger/WinstonLogger';
-import { OrderHistoryRepository } from '../repository/orderHistory.repository';
 import { CreateOrderHistoryDto } from '../dto/request/createHistory.dto';
 import { OrderHistoryItemDto, OrderHistoryTransactionResDto } from '../dto';
 import { EntityManager } from 'typeorm';
 import { OrderHistoryEntity } from '../entities/orderHistory.entity';
-import { IOrderHistoryService } from '../interfaces';
+import type {
+  IOrderHistoryRepository,
+  IOrderHistoryService,
+} from '../interfaces';
 
 @Injectable()
 export class OrderHistoryService implements IOrderHistoryService {
   constructor(
-    @Inject(OrderHistoryRepository)
-    private readonly orderHistoryRepository: OrderHistoryRepository,
+    @Inject('IOrderHistoryRepository')
+    private readonly orderHistoryRepository: IOrderHistoryRepository,
+
     private readonly logger: LoggerService,
   ) {}
   static logInfo = 'Service - OrderHistory:';

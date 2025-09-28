@@ -10,7 +10,6 @@ import { MatchingLogicService } from './services/matchingLogic.service';
 import { WalletModule } from '../wallet/wallet.module';
 import { FundsProcessorService } from './services/fundsProcessor.service';
 import { DatabaseModule } from '../database/database.module';
-import { OrderHistoryService } from '../orderHistory/services/orderHistory.service';
 
 @Module({
   imports: [
@@ -34,10 +33,6 @@ import { OrderHistoryService } from '../orderHistory/services/orderHistory.servi
     {
       provide: 'IMatchingLogicService',
       useClass: MatchingLogicService,
-    },
-    {
-      provide: 'IOrderHistoryService',
-      useClass: OrderHistoryService,
     },
   ],
   exports: [OrderbookService],

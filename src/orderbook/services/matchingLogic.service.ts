@@ -1,17 +1,16 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateBuyOrderReqDto, CreateSellOrderReqDto, ITrade } from '../dto';
 import { OrderBookEntity } from '../entities/orderbook.entity';
 import { EntityManager } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import { IMatchingLogicService } from '../interfaces';
-import type { IOrderHistoryService } from '../../orderHistory/interfaces/orderHistory.service.interface';
 import { LoggerService } from '../../utils/logger/WinstonLogger';
+import { OrderHistoryService } from '../../orderHistory/services/orderHistory.service';
 
 @Injectable()
 export class MatchingLogicService implements IMatchingLogicService {
   constructor(
-    @Inject('IOrderHistoryService')
-    private readonly orderHistoryService: IOrderHistoryService,
+    private readonly orderHistoryService: OrderHistoryService,
     private readonly logger: LoggerService,
   ) {}
 

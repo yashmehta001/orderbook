@@ -10,6 +10,7 @@ import {
 } from '../constants';
 import { userOutput } from '../../users/constants';
 import { EntityManager } from 'typeorm';
+import { OrderHistoryService } from '../../../src/orderHistory/services/orderHistory.service';
 
 describe('MatchingLogicService', () => {
   let matchingLogicService: MatchingLogicService;
@@ -20,7 +21,7 @@ describe('MatchingLogicService', () => {
         MatchingLogicService,
         LoggerService,
         {
-          provide: 'IOrderHistoryService',
+          provide: OrderHistoryService,
           useFactory: mockOrderHistoryService,
         },
       ],
