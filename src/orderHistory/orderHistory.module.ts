@@ -9,7 +9,13 @@ import { OrderHistoryRepository } from './repository/orderHistory.repository';
 @Module({
   imports: [TypeOrmModule.forFeature([OrderHistoryEntity]), LoggerModule],
   controllers: [OrderHistoryController],
-  providers: [OrderHistoryService, OrderHistoryRepository],
+  providers: [
+    OrderHistoryService,
+    {
+      provide: 'IOrderHistoryRepository',
+      useClass: OrderHistoryRepository,
+    },
+  ],
   exports: [OrderHistoryService],
 })
 export class OrderHistoryModule {}

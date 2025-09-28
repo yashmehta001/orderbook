@@ -22,9 +22,18 @@ import { DatabaseModule } from '../database/database.module';
   controllers: [OrderbookController],
   providers: [
     OrderbookService,
-    OrderBookRepository,
-    MatchingLogicService,
-    FundsProcessorService,
+    {
+      provide: 'IOrderBookRepository',
+      useClass: OrderBookRepository,
+    },
+    {
+      provide: 'IFundsProcessorService',
+      useClass: FundsProcessorService,
+    },
+    {
+      provide: 'IMatchingLogicService',
+      useClass: MatchingLogicService,
+    },
   ],
   exports: [OrderbookService],
 })

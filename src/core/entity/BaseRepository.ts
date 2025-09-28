@@ -1,11 +1,14 @@
 import { EntityManager, Repository, ObjectLiteral, DataSource } from 'typeorm';
+import { IBaseRepository } from '../interfaces/BaseRepository.interface';
 
 /**
  * BaseRepository
  * Provides common helpers for all repositories and ensures
  * transaction awareness when using EntityManager.
  */
-export abstract class BaseRepository<T extends ObjectLiteral> {
+export abstract class BaseRepository<T extends ObjectLiteral>
+  implements IBaseRepository<T>
+{
   protected abstract entity: { new (): T };
 
   constructor(protected readonly dataSource: DataSource) {}

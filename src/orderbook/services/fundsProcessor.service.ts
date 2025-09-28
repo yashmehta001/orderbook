@@ -2,12 +2,15 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { WalletService } from '../../wallet/services/wallet.service';
 import { EntityManager } from 'typeorm';
 import { ITrade } from '../dto';
+import { IFundsProcessorService } from '../interfaces';
+import { LoggerService } from '../../utils/logger/WinstonLogger';
 
 @Injectable()
-export class FundsProcessorService {
+export class FundsProcessorService implements IFundsProcessorService {
   constructor(
     @Inject(forwardRef(() => WalletService))
     private readonly walletService: WalletService,
+    private readonly logger: LoggerService,
   ) {}
 
   public async processFundsForSell(

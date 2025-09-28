@@ -4,17 +4,8 @@ import { UserEntity } from '../entities';
 import { UserCreateReqDto } from '../dto';
 import { DataSource, EntityManager } from 'typeorm';
 import { BaseRepository } from '../../core/entity/BaseRepository';
+import { IUserRepository } from '../interfaces';
 
-export interface IUserRepository {
-  save(
-    userInfo: UserCreateReqDto,
-    manager?: EntityManager,
-  ): Promise<UserEntity>;
-
-  getByEmail(email: string): Promise<UserEntity | null>;
-
-  getById(id: string): Promise<UserEntity | null>;
-}
 @Injectable()
 export class UserRepository
   extends BaseRepository<UserEntity>

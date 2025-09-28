@@ -14,11 +14,8 @@ import { QueryFailedError } from 'typeorm';
 import { errorMessages } from '../../core/config/messages';
 import { UserEntity } from '../entities';
 import { WalletService } from '../../wallet/services/wallet.service';
-export interface IUserService {
-  createUser(data: UserCreateReqDto): Promise<{ user: any; token: string }>;
-  loginUser(data: UserLoginReqDto): Promise<{ user: any; token: string }>;
-  profile(id: string): Promise<any>;
-}
+import { IUserService } from '../interfaces';
+
 @Injectable()
 export class UserService implements IUserService {
   constructor(

@@ -14,7 +14,13 @@ import { WalletController } from './wallet.controller';
     forwardRef(() => OrderbookModule),
   ],
   controllers: [WalletController],
-  providers: [WalletService, WalletsRepository],
+  providers: [
+    WalletService,
+    {
+      provide: 'IWalletsRepository',
+      useClass: WalletsRepository,
+    },
+  ],
   exports: [WalletService],
 })
 export class WalletModule {}

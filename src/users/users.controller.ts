@@ -30,10 +30,11 @@ import { Auth } from '../utils/authentication/decorator';
 import { AuthUser } from '../utils/decorators';
 import { successMessages } from '../core/config';
 import { UserEntity } from './entities';
+import { IUsersController } from './interfaces/users.controller.interface';
 
 @ApiTags('User')
 @Controller('user')
-export class UsersController {
+export class UsersController implements IUsersController {
   constructor(private readonly userService: UserService) {}
 
   @Auth(AuthType.None)
