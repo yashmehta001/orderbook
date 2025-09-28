@@ -1,5 +1,4 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { OrderBookRepository } from '../repository/orderBook.repository';
 import { LoggerService } from '../../utils/logger/WinstonLogger';
 import {
   CreateBuyOrderReqDto,
@@ -12,54 +11,30 @@ import {
 import { errorMessages, OrderSideEnum } from '../../core/config';
 import { CreateSellOrderReqDto } from '../dto/requests/sell-order.dto';
 import { OrderBookEntity } from '../entities/orderbook.entity';
-import { OrderHistoryService } from '../../orderHistory/services/orderHistory.service';
 import { v4 as uuid } from 'uuid';
 import { CustomError, NotFoundException } from '../../core/errors';
 import { EntityManager } from 'typeorm';
-import { MatchingLogicService } from './matchingLogic.service';
 import { WalletService } from '../../wallet/services/wallet.service';
-import { FundsProcessorService } from './fundsProcessor.service';
 import { TransactionManagerService } from '../../database/services/transaction-manager.service';
+import type {
+  IFundsProcessorService,
+  IMatchingLogicService,
+  IOrderBookRepository,
+  IOrderbookService,
+} from '../interfaces';
 
-export interface IOrderbookService {
-  createOrder(
-    userId: string,
-    orderInfo: CreateOrderBookReqDto,
-  ): Promise<OrderBookEntity>;
-
-  getOrderBooks(
-    userId: string,
-    stockName?: string,
-    side?: OrderSideEnum,
-  ): Promise<IOrderBook>;
-
-  getOrdersByUserId(
-    userId: string,
-    side?: OrderSideEnum,
-    stockName?: string,
-  ): Promise<OrderBookEntity[]>;
-
-  deleteOrder(userId: string, id: string): Promise<void>;
-
-  sellOrder(
-    userId: string,
-    orderInfo: CreateSellOrderReqDto,
-  ): Promise<ISellTrade>;
-
-  buyOrder(userId: string, orderInfo: CreateBuyOrderReqDto): Promise<IBuyTrade>;
-}
 @Injectable()
 export class OrderbookService implements IOrderbookService {
   constructor(
-    @Inject(OrderBookRepository)
-    private readonly orderBookRepository: OrderBookRepository,
-
+    @Inject('IOrderBookRepository')
+    private readonly orderBookRepository: IOrderBookRepository,
     private readonly logger: LoggerService,
-    private readonly orderHistoryService: OrderHistoryService,
-    private readonly matchingLogicService: MatchingLogicService,
+    @Inject('IMatchingLogicService')
+    private readonly matchingLogicService: IMatchingLogicService,
     @Inject(forwardRef(() => WalletService))
     private readonly walletsService: WalletService,
-    private readonly fundsProcessorService: FundsProcessorService,
+    @Inject('IFundsProcessorService')
+    private readonly fundsProcessorService: IFundsProcessorService,
     private readonly transactionManagerService: TransactionManagerService,
   ) {}
 
@@ -180,7 +155,9 @@ export class OrderbookService implements IOrderbookService {
   ): Promise<ISellTrade> {
     return this.transactionManagerService.runInTransaction<ISellTrade>(
       async (manager) => {
-        this.logInit('SELL', userId, orderInfo);
+        this.logger.info(
+          `${OrderbookService.logInfo} SELL order init | userId=${userId} | stock=${orderInfo.stockName} | qty=${orderInfo.quantity} | price=${orderInfo.price}`,
+        );
         const existingBuyOrders = await this.orderBookRepository.getOrderList(
           userId,
           orderInfo,
@@ -215,7 +192,7 @@ export class OrderbookService implements IOrderbookService {
 
         const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
         if (totalQuantity > 0) {
-          await this.recordOrderHistory(
+          await this.matchingLogicService.recordOrderHistory(
             userId,
             orderInfo,
             remainingOrder?.id,
@@ -223,8 +200,9 @@ export class OrderbookService implements IOrderbookService {
             manager,
           );
         }
-
-        this.logComplete('SELL', userId, orderInfo, remainingQuantity);
+        this.logger.info(
+          `${OrderbookService.logInfo} SELL order complete | userId=${userId} | stock=${orderInfo.stockName} | qty=${orderInfo.quantity} | price=${orderInfo.price} | remainingQty=${remainingQuantity}`,
+        );
         return {
           totalStockSold: totalQuantity,
           fundsAdded: totalFunds,
@@ -241,7 +219,9 @@ export class OrderbookService implements IOrderbookService {
   ): Promise<IBuyTrade> {
     return this.transactionManagerService.runInTransaction<IBuyTrade>(
       async (manager) => {
-        this.logInit('BUY', userId, orderInfo);
+        this.logger.info(
+          `${OrderbookService.logInfo} BUY order init | userId=${userId} | stock=${orderInfo.stockName} | qty=${orderInfo.quantity} | price=${orderInfo.price}`,
+        );
 
         if (
           !(await this.walletsService.validateBalance(
@@ -249,6 +229,11 @@ export class OrderbookService implements IOrderbookService {
             orderInfo.price * orderInfo.quantity,
           ))
         ) {
+          this.logger.warn(
+            `${OrderbookService.logInfo} Insufficient balance for userId: ${userId} with payload: ${
+              orderInfo.price * orderInfo.quantity
+            }`,
+          );
           throw new CustomError(errorMessages.INSUFFICIENT_BALANCE);
         }
 
@@ -290,7 +275,9 @@ export class OrderbookService implements IOrderbookService {
 
         const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
 
-        this.logComplete('BUY', userId, orderInfo, remainingQuantity);
+        this.logger.info(
+          `${OrderbookService.logInfo} BUY order complete | userId=${userId} | stock=${orderInfo.stockName} | qty=${orderInfo.quantity} | price=${orderInfo.price} | remainingQty=${remainingQuantity}`,
+        );
         return {
           totalStockBought: totalQuantity,
           fundsSpent: totalFunds,
@@ -332,69 +319,6 @@ export class OrderbookService implements IOrderbookService {
     );
   }
 
-  // private async processFundsForSell(
-  //   sellerId: string,
-  //   trades: ITrade[],
-  //   price: number,
-  //   manager: EntityManager,
-  // ): Promise<void> {
-  //   const sellerCredit = trades.reduce((sum, t) => sum + t.quantity * price, 0);
-  //   await this.walletsService.updateUserFunds(sellerId, sellerCredit, manager);
-
-  //   const buyerDebits: Record<string, number> = {};
-  //   for (const { buyerId, quantity, price: tradePrice } of trades) {
-  //     buyerDebits[buyerId] =
-  //       (buyerDebits[buyerId] || 0) - quantity * tradePrice;
-  //   }
-
-  //   for (const [buyerId, deltaFunds] of Object.entries(buyerDebits)) {
-  //     await this.walletsService.updateUserFunds(buyerId, deltaFunds, manager);
-  //   }
-  // }
-
-  // private async processFundsForBuy(
-  //   buyerId: string,
-  //   trades: any[],
-  //   manager: EntityManager,
-  // ): Promise<void> {
-  //   const sellerCredits: Record<string, number> = {};
-  //   let buyerDebit = 0;
-
-  //   for (const { sellerId, quantity, price } of trades) {
-  //     const total = quantity * price;
-  //     buyerDebit -= total;
-  //     const sellerKey: string = String(sellerId);
-  //     sellerCredits[sellerKey] = (sellerCredits[sellerKey] || 0) + total;
-  //   }
-
-  //   await this.walletsService.updateUserFunds(buyerId, buyerDebit, manager);
-
-  //   await Promise.all(
-  //     Object.entries(sellerCredits).map(([sellerId, delta]) => {
-  //       return this.walletsService.updateUserFunds(sellerId, delta, manager);
-  //     }),
-  //   );
-  // }
-
-  private async recordOrderHistory(
-    userId: string,
-    orderInfo: CreateSellOrderReqDto,
-    orderId: string | undefined,
-    totalQuantity: number,
-    manager: EntityManager,
-  ): Promise<void> {
-    if (totalQuantity <= 0) return;
-    await this.orderHistoryService.createOrderHistory(
-      {
-        id: (orderId as string) ?? uuid(),
-        ...orderInfo,
-        user: { id: userId },
-        quantity: totalQuantity,
-      },
-      manager,
-    );
-  }
-
   private summarizeTrades(trades: { quantity: number; price: number }[]): {
     totalQuantity: number;
     totalFunds: number;
@@ -404,41 +328,4 @@ export class OrderbookService implements IOrderbookService {
       totalFunds: trades.reduce((sum, t) => sum + t.quantity * t.price, 0),
     };
   }
-
-  private logInit(type: 'BUY' | 'SELL', userId: string, info: any): void {
-    this.logger.info(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      `${OrderbookService.logInfo} ${type} order init | userId=${userId} | stock=${info.stockName} | qty=${info.quantity} | price=${info.price}`,
-    );
-  }
-
-  private logComplete(
-    type: 'BUY' | 'SELL',
-    userId: string,
-    info: any,
-    remaining: number,
-  ): void {
-    this.logger.info(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      `${OrderbookService.logInfo} ${type} order complete | userId=${userId} | filled=${info.quantity - remaining} | remaining=${remaining}`,
-    );
-  }
-
-  // private async withTransaction<T>(
-  //   cb: (manager: EntityManager) => Promise<T>,
-  // ): Promise<T> {
-  //   const queryRunner = this.dataSource.createQueryRunner();
-  //   await queryRunner.connect();
-  //   await queryRunner.startTransaction();
-  //   try {
-  //     const result = await cb(queryRunner.manager);
-  //     await queryRunner.commitTransaction();
-  //     return result;
-  //   } catch (error) {
-  //     await queryRunner.rollbackTransaction();
-  //     throw error;
-  //   } finally {
-  //     await queryRunner.release();
-  //   }
-  // }
 }

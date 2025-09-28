@@ -11,10 +11,11 @@ import { Serialize } from '../utils/loaders/SerializeDto';
 import { AuthUser } from '../utils/decorators';
 import { UserProfileReqDto } from '../users/dto';
 import { OrderHistoryTransactionResDto } from './dto';
+import { IOrderHistoryController } from './interfaces';
 
 @ApiTags('Order History')
 @Controller('order-history')
-export class OrderHistoryController {
+export class OrderHistoryController implements IOrderHistoryController {
   constructor(private readonly orderHistoryService: OrderHistoryService) {}
 
   @Serialize(OrderHistoryTransactionResDto)

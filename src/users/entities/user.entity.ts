@@ -39,11 +39,6 @@ export class UserEntity {
   @Column()
   password: string;
 
-  @Column({
-    default: 0,
-  })
-  funds: number;
-
   @OneToMany(() => OrderBookEntity, (order) => order.user, { cascade: true })
   orders?: OrderBookEntity[];
 

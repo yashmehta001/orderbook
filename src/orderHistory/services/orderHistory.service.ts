@@ -5,17 +5,8 @@ import { CreateOrderHistoryDto } from '../dto/request/createHistory.dto';
 import { OrderHistoryItemDto, OrderHistoryTransactionResDto } from '../dto';
 import { EntityManager } from 'typeorm';
 import { OrderHistoryEntity } from '../entities/orderHistory.entity';
+import { IOrderHistoryService } from '../interfaces';
 
-export interface IOrderHistoryService {
-  createOrderHistory(
-    orderInfo: CreateOrderHistoryDto,
-    manager?: EntityManager,
-  ): Promise<any>;
-
-  getOrderHistoryByUserId(
-    userId: string,
-  ): Promise<OrderHistoryTransactionResDto[]>;
-}
 @Injectable()
 export class OrderHistoryService implements IOrderHistoryService {
   constructor(

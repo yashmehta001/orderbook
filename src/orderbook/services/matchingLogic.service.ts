@@ -1,13 +1,19 @@
-import { Injectable } from '@nestjs/common';
-import { OrderHistoryService } from '../../orderHistory/services/orderHistory.service';
+import { Inject, Injectable } from '@nestjs/common';
 import { CreateBuyOrderReqDto, CreateSellOrderReqDto, ITrade } from '../dto';
 import { OrderBookEntity } from '../entities/orderbook.entity';
 import { EntityManager } from 'typeorm';
 import { v4 as uuid } from 'uuid';
+import { IMatchingLogicService } from '../interfaces';
+import type { IOrderHistoryService } from '../../orderHistory/interfaces/orderHistory.service.interface';
+import { LoggerService } from '../../utils/logger/WinstonLogger';
 
 @Injectable()
-export class MatchingLogicService {
-  constructor(private readonly orderHistoryService: OrderHistoryService) {}
+export class MatchingLogicService implements IMatchingLogicService {
+  constructor(
+    @Inject('IOrderHistoryService')
+    private readonly orderHistoryService: IOrderHistoryService,
+    private readonly logger: LoggerService,
+  ) {}
 
   async matchOrders(params: {
     initiatorId: string;
@@ -22,6 +28,9 @@ export class MatchingLogicService {
     ordersToUpdate: { id: string; quantity: number }[];
     remainingQuantity: number;
   }> {
+    this.logger.info(
+      `Starting order matching process ${JSON.stringify(params)}`,
+    );
     const { initiatorId, orderInfo, oppositeOrders, isSell, orderId, manager } =
       params;
 
@@ -71,10 +80,36 @@ export class MatchingLogicService {
 
       remainingQuantity -= tradeQty;
     }
-
+    this.logger.info(
+      `Order matching process completed. Trades: ${JSON.stringify(
+        trades,
+      )}, Orders to Remove: ${JSON.stringify(
+        ordersToRemove,
+      )}, Orders to Update: ${JSON.stringify(
+        ordersToUpdate,
+      )}, Remaining Quantity: ${remainingQuantity}`,
+    );
     return { trades, ordersToRemove, ordersToUpdate, remainingQuantity };
   }
 
+  async recordOrderHistory(
+    userId: string,
+    orderInfo: CreateSellOrderReqDto,
+    orderId: string | undefined,
+    totalQuantity: number,
+    manager?: EntityManager,
+  ): Promise<void> {
+    if (totalQuantity <= 0) return;
+    await this.orderHistoryService.createOrderHistory(
+      {
+        id: (orderId as string) ?? uuid(),
+        ...orderInfo,
+        user: { id: userId },
+        quantity: totalQuantity,
+      },
+      manager,
+    );
+  }
   private buildSellTrade(
     opposite: OrderBookEntity,
     sellerId: string,

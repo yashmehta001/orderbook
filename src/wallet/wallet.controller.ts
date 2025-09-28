@@ -15,9 +15,11 @@ import { UpdateFundsReqDto, UpdateFundsResDto } from './dto';
 import { WalletEntity } from './entities/wallet.entity';
 import { WalletService } from './services/wallet.service';
 
+import { IWalletController } from './interfaces/wallet.controller.interface';
+
 @ApiTags('Wallets')
 @Controller('wallet')
-export class WalletController {
+export class WalletController implements IWalletController {
   constructor(private readonly walletService: WalletService) {}
   @Serialize(UpdateFundsResDto, successMessages.FUND_UPDATED)
   @ApiResponse({

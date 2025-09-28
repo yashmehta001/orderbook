@@ -37,10 +37,11 @@ import {
 import { CreateSellOrderReqDto } from './dto/requests/sell-order.dto';
 import { errorMessages, successMessages } from '../core/config';
 import { OrderBookEntity } from './entities/orderbook.entity';
+import { IOrderbookController } from './interfaces';
 
 @ApiTags('Orderbook')
 @Controller('orderbook')
-export class OrderbookController {
+export class OrderbookController implements IOrderbookController {
   constructor(private readonly orderBookService: OrderbookService) {}
 
   @Serialize(CreateSellOrderResDto, successMessages.SELL_ORDER_CREATED)
