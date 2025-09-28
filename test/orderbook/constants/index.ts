@@ -8,6 +8,7 @@ import {
   IBuyTrade,
   IOrderBook,
   ISellTrade,
+  ITrade,
 } from '../../../src/orderbook/dto';
 import { OrderBookEntity } from '../../../src/orderbook/entities/orderbook.entity';
 
@@ -138,3 +139,15 @@ export const mockRawOrders: any = [
     side: OrderSideEnum.SELL,
   },
 ];
+export const mockTrade: ITrade = {
+  buyUserId: 'buyUserId',
+  sellOrderId: 'sellOrderId',
+  sellerId: 'sellerId',
+  id: 'tradeId',
+  buyOrderId: 'buyOrderId',
+  sellUserId: 'sellUserId',
+  stockName: 'apple',
+  buyerId: 'buyerId',
+  price: 200,
+  quantity: 2,
+};
