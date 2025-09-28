@@ -28,7 +28,7 @@ export class MatchingLogicService implements IMatchingLogicService {
     remainingQuantity: number;
   }> {
     this.logger.info(
-      `Starting order matching process ${JSON.stringify(params)}`,
+      `Matching orders for initiatorId: ${params.initiatorId}, orderInfo: ${JSON.stringify(params.orderInfo)}, isSell: ${params.isSell}`,
     );
     const { initiatorId, orderInfo, oppositeOrders, isSell, orderId, manager } =
       params;

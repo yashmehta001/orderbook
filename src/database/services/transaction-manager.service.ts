@@ -16,6 +16,7 @@ export class TransactionManagerService {
       await queryRunner.commitTransaction();
       return result;
     } catch (error) {
+      console.log(error);
       await queryRunner.rollbackTransaction();
       throw error;
     } finally {
