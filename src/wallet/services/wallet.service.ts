@@ -129,7 +129,7 @@ export class WalletService implements IWalletService {
     } catch (error) {
       this.logger.warn(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        `${OrderbookService.logInfo} ${error.message} for userId: ${userId} payload: ${updateFunds}`,
+        `${WalletService.logInfo} ${error.message} for userId: ${userId} payload: ${updateFunds}`,
       );
       throw error;
     }
