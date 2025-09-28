@@ -40,8 +40,6 @@ export class MatchingLogicService implements IMatchingLogicService {
     const ordersToUpdate: { id: string; quantity: number }[] = [];
 
     for (const opposite of oppositeOrders) {
-      if (remainingQuantity <= 0) break;
-
       const availableQty = opposite.quantity;
       const tradeQty = Math.min(remainingQuantity, availableQty);
 
@@ -99,7 +97,6 @@ export class MatchingLogicService implements IMatchingLogicService {
     totalQuantity: number,
     manager?: EntityManager,
   ): Promise<void> {
-    if (totalQuantity <= 0) return;
     await this.orderHistoryService.createOrderHistory(
       {
         id: (orderId as string) ?? uuid(),
@@ -110,6 +107,11 @@ export class MatchingLogicService implements IMatchingLogicService {
       manager,
     );
   }
+
+  /* -------------------------------------------------------------------------- */
+  /*                              PRIVATE HELPERS                               */
+  /* -------------------------------------------------------------------------- */
+
   private buildSellTrade(
     opposite: OrderBookEntity,
     sellerId: string,
