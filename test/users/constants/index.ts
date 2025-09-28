@@ -28,12 +28,10 @@ export const userOutput: UserEntity = {
   orders: [],
   orderHistory: [],
 
-  wallet: WalletEntity
-    ? ({
-        funds: 1000,
-        id: 'wallet-id',
-      } as WalletEntity)
-    : undefined,
+  wallet: {
+    funds: 1000,
+    id: 'wallet-id',
+  } as WalletEntity,
 };
 
 export const loginUserInput: UserLoginReqDto = {

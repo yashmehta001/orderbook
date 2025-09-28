@@ -70,7 +70,7 @@ describe('OrderbookService', () => {
         },
         {
           provide: 'IWalletsRepository',
-          useValue: mockWalletsRepository,
+          useFactory: mockWalletsRepository,
         },
         {
           provide: DataSource,

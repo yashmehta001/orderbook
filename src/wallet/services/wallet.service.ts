@@ -43,7 +43,6 @@ export class WalletService implements IWalletService {
     manager?: EntityManager,
   ): Promise<WalletEntity> {
     try {
-      console.log('Updating user funds', id, funds);
       this.logger.info(
         ` ${WalletService.logInfo} Updating funds for userId: ${id} with payload: ${funds}`,
       );

@@ -35,7 +35,6 @@ describe('WalletService', () => {
         },
       ],
     }).compile();
-    walletService = module.get<WalletService>(WalletService);
     walletRepository = module.get<IWalletsRepository>(
       'IWalletsRepository',
     ) as jest.Mocked<IWalletsRepository>;

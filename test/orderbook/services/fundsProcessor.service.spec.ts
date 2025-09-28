@@ -21,11 +21,11 @@ describe('FundsProcessorService', () => {
         WalletService,
         {
           provide: 'IWalletsRepository',
-          useValue: mockWalletsRepository,
+          useFactory: mockWalletsRepository,
         },
         {
           provide: OrderbookService,
-          useValue: mockOrderBookService,
+          useFactory: mockOrderBookService,
         },
       ],
     }).compile();
