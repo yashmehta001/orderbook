@@ -16,9 +16,9 @@ export class TransactionManagerService {
       await queryRunner.commitTransaction();
       return result;
     } catch (error) {
-      console.log(error);
       await queryRunner.rollbackTransaction();
-      throw error;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      throw new Error(`Transaction failed: ${error.message}`);
     } finally {
       await queryRunner.release();
     }
