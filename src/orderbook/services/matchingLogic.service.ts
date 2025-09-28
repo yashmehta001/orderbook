@@ -4,13 +4,15 @@ import { OrderBookEntity } from '../entities/orderbook.entity';
 import { EntityManager } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import { IMatchingLogicService } from '../interfaces';
-import type { IOrderHistoryService } from 'src/orderHistory/interfaces/orderHistory.service.interface';
+import type { IOrderHistoryService } from '../../orderHistory/interfaces/orderHistory.service.interface';
+import { LoggerService } from '../../utils/logger/WinstonLogger';
 
 @Injectable()
 export class MatchingLogicService implements IMatchingLogicService {
   constructor(
     @Inject('IOrderHistoryService')
     private readonly orderHistoryService: IOrderHistoryService,
+    private readonly logger: LoggerService,
   ) {}
 
   async matchOrders(params: {
@@ -26,6 +28,9 @@ export class MatchingLogicService implements IMatchingLogicService {
     ordersToUpdate: { id: string; quantity: number }[];
     remainingQuantity: number;
   }> {
+    this.logger.info(
+      `Starting order matching process ${JSON.stringify(params)}`,
+    );
     const { initiatorId, orderInfo, oppositeOrders, isSell, orderId, manager } =
       params;
 
@@ -75,7 +80,15 @@ export class MatchingLogicService implements IMatchingLogicService {
 
       remainingQuantity -= tradeQty;
     }
-
+    this.logger.info(
+      `Order matching process completed. Trades: ${JSON.stringify(
+        trades,
+      )}, Orders to Remove: ${JSON.stringify(
+        ordersToRemove,
+      )}, Orders to Update: ${JSON.stringify(
+        ordersToUpdate,
+      )}, Remaining Quantity: ${remainingQuantity}`,
+    );
     return { trades, ordersToRemove, ordersToUpdate, remainingQuantity };
   }
 
@@ -84,7 +97,7 @@ export class MatchingLogicService implements IMatchingLogicService {
     orderInfo: CreateSellOrderReqDto,
     orderId: string | undefined,
     totalQuantity: number,
-    manager: EntityManager,
+    manager?: EntityManager,
   ): Promise<void> {
     if (totalQuantity <= 0) return;
     await this.orderHistoryService.createOrderHistory(
