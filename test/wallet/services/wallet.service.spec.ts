@@ -5,7 +5,10 @@ import { mockWalletsRepository } from '../mocks/wallet.repository.mock';
 import { IWalletsRepository } from '../../../src/wallet/interfaces/wallets.repository.interface';
 import { OrderbookService } from '../../../src/orderbook/services/orderbook.service';
 import { mockOrderBookService } from '../../orderbook/mocks';
-import { updateWalletServiceOutput } from '../constants';
+import {
+  updateWalletServiceInsufficientFundsOutput,
+  updateWalletServiceOutput,
+} from '../constants';
 import { userOutput } from '../../users/constants';
 import {
   mockOrderBookBuyDataExcessOrder,
@@ -92,7 +95,9 @@ describe('WalletService', () => {
     });
 
     it('should throw an error if updating funds results in negative balance', async () => {
-      walletRepository.findOneById.mockResolvedValue(updateWalletServiceOutput);
+      walletRepository.findOneById.mockResolvedValue(
+        updateWalletServiceInsufficientFundsOutput,
+      );
 
       await expect(
         walletService.updateUserFunds(userOutput.id, -1500),
@@ -107,16 +112,15 @@ describe('WalletService', () => {
       ).rejects.toThrow('DB Error');
     });
   });
+
   describe('validateBalance', () => {
     it('should return true if user has sufficient balance', async () => {
-      walletService.getUserFunds = jest
-        .fn()
-        .mockResolvedValue(updateWalletServiceOutput);
+      walletRepository.findOneById.mockResolvedValue(updateWalletServiceOutput);
       orderbookService.getOrdersByUserId.mockResolvedValue([
         mockOrderBookBuyDataRemainingOrder,
       ]);
 
-      const result = await walletService.validateBalance(userOutput.id, 200);
+      const result = await walletService.validateBalance(userOutput.id, 5);
       expect(result).toBe(true);
     });
     it('should return true if user has no records and sufficient balance', async () => {
@@ -125,14 +129,14 @@ describe('WalletService', () => {
         .mockResolvedValue(updateWalletServiceOutput);
       orderbookService.getOrdersByUserId.mockResolvedValue([]);
 
-      const result = await walletService.validateBalance(userOutput.id, 200);
+      const result = await walletService.validateBalance(userOutput.id, 5);
       expect(result).toBe(true);
     });
 
     it('should return false if user has insufficient balance', async () => {
-      walletService.getUserFunds = jest
-        .fn()
-        .mockResolvedValue(updateWalletServiceOutput);
+      walletRepository.findOneById.mockResolvedValue(
+        updateWalletServiceInsufficientFundsOutput,
+      );
       orderbookService.getOrdersByUserId.mockResolvedValue([
         mockOrderBookBuyDataExcessOrder,
       ]);

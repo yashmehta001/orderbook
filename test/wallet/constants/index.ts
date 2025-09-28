@@ -13,6 +13,12 @@ export const updateWalletOutput: UpdateFundsResDto = {
 
 export const updateWalletServiceOutput: WalletEntity = {
   id: userOutput.id,
+  funds: 10000,
+  user: userOutput,
+  auditInfo: new AuditInfo(),
+};
+export const updateWalletServiceInsufficientFundsOutput: WalletEntity = {
+  id: userOutput.id,
   funds: 1000,
   user: userOutput,
   auditInfo: new AuditInfo(),
