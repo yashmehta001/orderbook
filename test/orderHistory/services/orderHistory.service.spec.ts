@@ -3,14 +3,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { LoggerService } from '../../../src/utils/logger/WinstonLogger';
 import { OrderHistoryService } from '../../../src/orderHistory/services/orderHistory.service';
 import { OrderHistoryRepository } from '../../../src/orderHistory/repository/orderHistory.repository';
+import { CreateOrderHistoryDto } from '../../../src/orderHistory/dto';
+import { mockOrderHistoryRepository } from '../mocks';
 import {
   mockEmptyGroupedHistory,
   mockGroupedHistory,
   mockOrderHistoryItem,
-} from '../../../src/orderHistory/tests/constants';
-import { CreateOrderHistoryDto } from '../../../src/orderHistory/dto';
-import { userOutput } from '../../../users/tests/constants';
-import { mockOrderHistoryRepository } from '../mocks';
+} from '../constants';
+import { userOutput } from '../../users/constants';
 
 describe('OrderHistoryService', () => {
   let orderHistoryService: OrderHistoryService;

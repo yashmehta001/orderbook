@@ -3,7 +3,7 @@ import { OrderbookService } from '../../orderbook/services/orderbook.service';
 import { OrderSideEnum } from '../../core/config/constants';
 import { LoggerService } from '../../utils/logger/WinstonLogger';
 import { errorMessages } from '../../core/config';
-import { CustomError } from '../../core/errors';
+import { CustomError, NotFoundException } from '../../core/errors';
 import { EntityManager } from 'typeorm';
 import { WalletEntity } from '../entities/wallet.entity';
 import type { IWalletsRepository } from '../interfaces/wallets.repository.interface';
@@ -19,15 +19,14 @@ export class WalletService implements IWalletService {
     private readonly logger: LoggerService,
   ) {}
   static logInfo = 'WalletService';
-  async getUserFunds(id: string): Promise<WalletEntity> {
+  async getUserFunds(id: string): Promise<WalletEntity | null> {
     try {
       this.logger.info(
         ` ${WalletService.logInfo} Fetching funds for userId: ${id}`,
       );
       const userFunds = await this.walletsRepository.findOneById(id);
-      const funds = userFunds ? userFunds.funds : 0;
-      this.logger.info(`UserId: ${id} has funds: ${funds}`);
-      return userFunds ?? ({ id, funds } as WalletEntity);
+      this.logger.info(`UserId: ${id} has funds: ${userFunds?.funds}`);
+      return userFunds;
     } catch (error) {
       this.logger.error(
         ` ${WalletService.logInfo} Error fetching funds for userId: ${id}`,
@@ -113,11 +112,18 @@ export class WalletService implements IWalletService {
       this.logger.info(
         ` ${WalletService.logInfo} Validating balance for userId: ${userId} with payload: ${updateFunds}`,
       );
-      const { funds } = await this.getUserFunds(userId);
+      const userFunds = await this.getUserFunds(userId);
+      if (!userFunds) {
+        this.logger.warn(
+          ` ${WalletService.logInfo} No wallet found for userId: ${userId}`,
+        );
+        throw new NotFoundException();
+      }
       const pledgedFunds = await this.getLockedFundsForPendingBuys(userId);
-      const hasSufficientBalance = funds - updateFunds - pledgedFunds >= 0;
+      const hasSufficientBalance =
+        userFunds.funds - updateFunds - pledgedFunds >= 0;
       this.logger.info(
-        ` ${WalletService.logInfo} UserId: ${userId} has sufficient balance: ${hasSufficientBalance} with current funds: ${funds}, pledgedFunds: ${pledgedFunds} and updateFunds: ${updateFunds}`,
+        ` ${WalletService.logInfo} UserId: ${userId} has sufficient balance: ${hasSufficientBalance} with current funds: ${userFunds.funds}, pledgedFunds: ${pledgedFunds} and updateFunds: ${updateFunds}`,
       );
       return hasSufficientBalance;
     } catch (error) {

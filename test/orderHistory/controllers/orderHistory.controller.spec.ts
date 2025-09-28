@@ -1,8 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrderHistoryController } from '../../../src/orderHistory/orderHistory.controller';
 import { OrderHistoryService } from '../../../src/orderHistory/services/orderHistory.service';
-import { userProfileInput } from '../../../users/tests/constants';
+
 import { mockOrderHistoryService } from '../mocks';
+import { userProfileInput } from '../../users/constants';
 
 describe('OrderHistory Controller', () => {
   let orderHistoryService: jest.Mocked<OrderHistoryService>;

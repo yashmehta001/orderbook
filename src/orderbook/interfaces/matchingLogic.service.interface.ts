@@ -16,4 +16,12 @@ export interface IMatchingLogicService {
     ordersToUpdate: { id: string; quantity: number }[];
     remainingQuantity: number;
   }>;
+
+  recordOrderHistory(
+    userId: string,
+    orderInfo: CreateSellOrderReqDto,
+    orderId: string | undefined,
+    totalQuantity: number,
+    manager: EntityManager,
+  ): Promise<void>;
 }

@@ -10,6 +10,7 @@ import { MatchingLogicService } from './services/matchingLogic.service';
 import { WalletModule } from '../wallet/wallet.module';
 import { FundsProcessorService } from './services/fundsProcessor.service';
 import { DatabaseModule } from '../database/database.module';
+import { OrderHistoryService } from '../orderHistory/services/orderHistory.service';
 
 @Module({
   imports: [
@@ -22,9 +23,22 @@ import { DatabaseModule } from '../database/database.module';
   controllers: [OrderbookController],
   providers: [
     OrderbookService,
-    OrderBookRepository,
-    MatchingLogicService,
-    FundsProcessorService,
+    {
+      provide: 'IOrderBookRepository',
+      useClass: OrderBookRepository,
+    },
+    {
+      provide: 'IFundsProcessorService',
+      useClass: FundsProcessorService,
+    },
+    {
+      provide: 'IMatchingLogicService',
+      useClass: MatchingLogicService,
+    },
+    {
+      provide: 'IOrderHistoryService',
+      useClass: OrderHistoryService,
+    },
   ],
   exports: [OrderbookService],
 })

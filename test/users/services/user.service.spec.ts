@@ -10,24 +10,23 @@ import {
   userOutputWithToken,
 } from '../constants';
 import { QueryFailedError } from 'typeorm';
-import { OrderbookService } from '../../../src/orderbook/services/orderbook.service';
 import { UserService } from '../../../src/users/services/users.service';
 import { UserRepository } from '../../../src/users/repository/users.repository';
 import { HashService } from '../../../src/utils/hash/hash.service';
 import { TokenService } from '../../../src/utils/token/services';
 import { LoggerService } from '../../../src/utils/logger/WinstonLogger';
-import { CustomError } from '../../../src/core/errors';
-import { NotFoundException } from '@nestjs/common';
-import { mockOrderBookService } from '../../orderbook/mocks';
+import { CustomError, NotFoundException } from '../../../src/core/errors';
 import { mockHashService, mockTokenService } from '../mocks';
+import { WalletService } from '../../../src/wallet/services/wallet.service';
+import { mockWalletService } from '../../wallet/mocks/wallet.service.mock';
+import { updateWalletServiceOutput } from '../../wallet/constants';
 
 describe('UserService', () => {
   let userService: UserService;
   let userRepository: jest.Mocked<UserRepository>;
   let hashService: jest.Mocked<HashService>;
   let tokenService: jest.Mocked<TokenService>;
-  let orderbookService: jest.Mocked<OrderbookService>;
-
+  let walletService: jest.Mocked<WalletService>;
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -46,8 +45,8 @@ describe('UserService', () => {
           useFactory: mockUsersRepository,
         },
         {
-          provide: OrderbookService,
-          useValue: mockOrderBookService(),
+          provide: WalletService,
+          useFactory: mockWalletService,
         },
       ],
     }).compile();
@@ -61,9 +60,9 @@ describe('UserService', () => {
     tokenService = module.get<TokenService>(
       TokenService,
     ) as jest.Mocked<TokenService>;
-    orderbookService = module.get<OrderbookService>(
-      OrderbookService,
-    ) as jest.Mocked<OrderbookService>;
+    walletService = module.get<WalletService>(
+      WalletService,
+    ) as jest.Mocked<WalletService>;
   });
 
   it('UsersService should be defined', () => {
@@ -75,6 +74,9 @@ describe('UserService', () => {
       hashService.hash.mockResolvedValue(userOutput.password);
       tokenService.token.mockResolvedValue(token);
       userRepository.save.mockResolvedValue(userOutput);
+      walletService.updateUserFunds.mockResolvedValue(
+        updateWalletServiceOutput,
+      );
       const user = await userService.createUser(createUserInput);
 
       expect(user).toEqual(userOutputWithToken);

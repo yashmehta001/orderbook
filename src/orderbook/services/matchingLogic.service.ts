@@ -1,14 +1,17 @@
-import { Injectable } from '@nestjs/common';
-import { OrderHistoryService } from '../../orderHistory/services/orderHistory.service';
+import { Inject, Injectable } from '@nestjs/common';
 import { CreateBuyOrderReqDto, CreateSellOrderReqDto, ITrade } from '../dto';
 import { OrderBookEntity } from '../entities/orderbook.entity';
 import { EntityManager } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import { IMatchingLogicService } from '../interfaces';
+import type { IOrderHistoryService } from 'src/orderHistory/interfaces/orderHistory.service.interface';
 
 @Injectable()
 export class MatchingLogicService implements IMatchingLogicService {
-  constructor(private readonly orderHistoryService: OrderHistoryService) {}
+  constructor(
+    @Inject('IOrderHistoryService')
+    private readonly orderHistoryService: IOrderHistoryService,
+  ) {}
 
   async matchOrders(params: {
     initiatorId: string;
@@ -76,6 +79,24 @@ export class MatchingLogicService implements IMatchingLogicService {
     return { trades, ordersToRemove, ordersToUpdate, remainingQuantity };
   }
 
+  async recordOrderHistory(
+    userId: string,
+    orderInfo: CreateSellOrderReqDto,
+    orderId: string | undefined,
+    totalQuantity: number,
+    manager: EntityManager,
+  ): Promise<void> {
+    if (totalQuantity <= 0) return;
+    await this.orderHistoryService.createOrderHistory(
+      {
+        id: (orderId as string) ?? uuid(),
+        ...orderInfo,
+        user: { id: userId },
+        quantity: totalQuantity,
+      },
+      manager,
+    );
+  }
   private buildSellTrade(
     opposite: OrderBookEntity,
     sellerId: string,
