@@ -20,34 +20,8 @@ import { MatchingLogicService } from './matchingLogic.service';
 import { WalletService } from '../../wallet/services/wallet.service';
 import { FundsProcessorService } from './fundsProcessor.service';
 import { TransactionManagerService } from '../../database/services/transaction-manager.service';
+import { IOrderbookService } from '../interfaces';
 
-export interface IOrderbookService {
-  createOrder(
-    userId: string,
-    orderInfo: CreateOrderBookReqDto,
-  ): Promise<OrderBookEntity>;
-
-  getOrderBooks(
-    userId: string,
-    stockName?: string,
-    side?: OrderSideEnum,
-  ): Promise<IOrderBook>;
-
-  getOrdersByUserId(
-    userId: string,
-    side?: OrderSideEnum,
-    stockName?: string,
-  ): Promise<OrderBookEntity[]>;
-
-  deleteOrder(userId: string, id: string): Promise<void>;
-
-  sellOrder(
-    userId: string,
-    orderInfo: CreateSellOrderReqDto,
-  ): Promise<ISellTrade>;
-
-  buyOrder(userId: string, orderInfo: CreateBuyOrderReqDto): Promise<IBuyTrade>;
-}
 @Injectable()
 export class OrderbookService implements IOrderbookService {
   constructor(

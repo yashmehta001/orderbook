@@ -6,8 +6,8 @@ import { errorMessages } from '../../core/config';
 import { CustomError } from '../../core/errors';
 import { EntityManager } from 'typeorm';
 import { WalletEntity } from '../entities/wallet.entity';
-import type { IWalletsRepository } from '../interfaces/wallets-repository.interface';
-import { IWalletService } from '../interfaces/wallet-service.interface';
+import type { IWalletsRepository } from '../interfaces/wallets.repository.interface';
+import { IWalletService } from '../interfaces/wallet.service.interface';
 
 @Injectable()
 export class WalletService implements IWalletService {

@@ -1,56 +1,22 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, Repository } from 'typeorm';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { EntityManager } from 'typeorm';
 import { OrderBookEntity } from '../entities/orderbook.entity';
 import { CreateOrderBookReqDto, OrderBookRaw } from '../dto';
 import { OrderSideEnum } from '../../core/config';
+import { DataSource } from 'typeorm';
+import { BaseRepository } from '../../core/entity/BaseRepository';
+import { IOrderBookRepository } from '../interfaces';
 
-export interface IOrderBookRepository {
-  save(
-    userId: string,
-    orderInfos: CreateOrderBookReqDto,
-    manager?: EntityManager,
-    id?: string,
-  ): Promise<OrderBookEntity>;
-
-  getOrderBooks(
-    userId: string,
-    stockName?: string,
-    side?: OrderSideEnum,
-  ): Promise<OrderBookRaw[]>;
-
-  getOrderById(id: string, userId: string): Promise<OrderBookEntity | null>;
-
-  getOrdersByUserId(
-    userId: string,
-    stockName?: string,
-    side?: OrderSideEnum,
-  ): Promise<OrderBookEntity[]>;
-
-  getOrderList(
-    userId: string,
-    data?: CreateOrderBookReqDto,
-  ): Promise<OrderBookEntity[]>;
-
-  bulkRemoveOrders(orderIds: string[], manager?: EntityManager): Promise<void>;
-
-  bulkUpdateQuantities(
-    updates: { id: string; quantity: number }[],
-    manager?: EntityManager,
-  ): Promise<void>;
-}
 @Injectable()
-export class OrderBookRepository implements IOrderBookRepository {
-  constructor(
-    @InjectRepository(OrderBookEntity)
-    private readonly orderBookEntity: Repository<OrderBookEntity>,
-  ) {}
-
-  private getRepo(manager?: EntityManager) {
-    return manager
-      ? manager.getRepository(OrderBookEntity)
-      : this.orderBookEntity;
+export class OrderBookRepository
+  extends BaseRepository<OrderBookEntity>
+  implements IOrderBookRepository
+{
+  constructor(@InjectDataSource() dataSource: DataSource) {
+    super(dataSource);
   }
+  protected entity = OrderBookEntity;
 
   async save(
     userId: string,
@@ -71,8 +37,9 @@ export class OrderBookRepository implements IOrderBookRepository {
     userId: string,
     stockName: string = '',
     side?: OrderSideEnum,
+    manager?: EntityManager,
   ): Promise<OrderBookRaw[]> {
-    const orderBooks = this.orderBookEntity
+    const orderBooks = this.getRepo(manager)
       .createQueryBuilder('order')
       .select('order.side', 'side')
       .addSelect('order.stock_name', 'stockName')
@@ -101,8 +68,9 @@ export class OrderBookRepository implements IOrderBookRepository {
   async getOrderById(
     id: string,
     userId: string,
+    manager?: EntityManager,
   ): Promise<OrderBookEntity | null> {
-    const order = this.orderBookEntity
+    const order = this.getRepo(manager)
       .createQueryBuilder('order')
       .where({ id })
       .leftJoin('order.user', 'user')
@@ -113,13 +81,14 @@ export class OrderBookRepository implements IOrderBookRepository {
     userId: string,
     stockName?: string,
     side?: OrderSideEnum,
+    manager?: EntityManager,
   ): Promise<OrderBookEntity[]> {
-    const orders = this.orderBookEntity
+    const orders = this.getRepo(manager)
       .createQueryBuilder('order')
       .leftJoin('order.user', 'user')
       .where('user.id = :userId', { userId })
       .orderBy('side')
-      .orderBy('order.auditInfo.createdAt', 'DESC');
+      .addOrderBy('order.auditInfo.createdAt', 'DESC');
 
     if (stockName)
       orders.andWhere('order.stock_name ILIKE :stockName', {
@@ -134,8 +103,9 @@ export class OrderBookRepository implements IOrderBookRepository {
   async getOrderList(
     userId: string,
     data?: CreateOrderBookReqDto,
+    manager?: EntityManager,
   ): Promise<OrderBookEntity[]> {
-    const query = this.orderBookEntity
+    const query = this.getRepo(manager)
       .createQueryBuilder('order')
       .leftJoinAndSelect('order.user', 'user')
       .where('user.id != :userId', { userId });

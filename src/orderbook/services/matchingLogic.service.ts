@@ -4,9 +4,10 @@ import { CreateBuyOrderReqDto, CreateSellOrderReqDto, ITrade } from '../dto';
 import { OrderBookEntity } from '../entities/orderbook.entity';
 import { EntityManager } from 'typeorm';
 import { v4 as uuid } from 'uuid';
+import { IMatchingLogicService } from '../interfaces';
 
 @Injectable()
-export class MatchingLogicService {
+export class MatchingLogicService implements IMatchingLogicService {
   constructor(private readonly orderHistoryService: OrderHistoryService) {}
 
   async matchOrders(params: {

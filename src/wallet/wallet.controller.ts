@@ -15,7 +15,7 @@ import { UpdateFundsReqDto, UpdateFundsResDto } from './dto';
 import { WalletEntity } from './entities/wallet.entity';
 import { WalletService } from './services/wallet.service';
 
-import { IWalletController } from './interfaces/wallet-controller.interface';
+import { IWalletController } from './interfaces/wallet.controller.interface';
 
 @ApiTags('Wallets')
 @Controller('wallet')

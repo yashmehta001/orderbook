@@ -4,15 +4,7 @@ import { EntityManager, DataSource } from 'typeorm';
 import { OrderHistoryEntity } from '../entities/orderHistory.entity';
 import { CreateOrderHistoryDto } from '../dto/request/createHistory.dto';
 import { BaseRepository } from '../../core/entity/BaseRepository';
-
-export interface IOrderHistoryRepository {
-  save(
-    orderInfo: Partial<CreateOrderHistoryDto>,
-    manager?: EntityManager,
-  ): Promise<OrderHistoryEntity>;
-
-  getByUserId(userId: string): Promise<OrderHistoryEntity[]>;
-}
+import { IOrderHistoryRepository } from '../interfaces';
 
 @Injectable()
 export class OrderHistoryRepository
