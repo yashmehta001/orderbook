@@ -153,141 +153,154 @@ export class OrderbookService implements IOrderbookService {
     userId: string,
     orderInfo: CreateSellOrderReqDto,
   ): Promise<ISellTrade> {
-    return this.transactionManagerService.runInTransaction<ISellTrade>(
-      async (manager) => {
-        this.logger.info(
-          `${OrderbookService.logInfo} SELL order init | userId=${userId} | stock=${orderInfo.stockName} | qty=${orderInfo.quantity} | price=${orderInfo.price}`,
-        );
-        const existingBuyOrders = await this.orderBookRepository.getOrderList(
-          userId,
-          orderInfo,
-        );
-        const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
-          await this.matchingLogicService.matchOrders({
-            initiatorId: userId,
-            orderInfo,
-            oppositeOrders: existingBuyOrders,
-            isSell: true,
-            manager,
-          });
-        await this.applyOrderBookUpdates(
-          ordersToRemove,
-          ordersToUpdate,
-          manager,
-        );
-
-        const remainingOrder = await this.saveRemainingOrder(
-          userId,
-          orderInfo,
-          remainingQuantity,
-          manager,
-        );
-
-        await this.fundsProcessorService.processFundsForSell(
-          userId,
-          trades,
-          orderInfo.price,
-          manager,
-        );
-
-        const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
-        if (totalQuantity > 0) {
-          await this.matchingLogicService.recordOrderHistory(
+    try {
+      return this.transactionManagerService.runInTransaction<ISellTrade>(
+        async (manager) => {
+          this.logger.info(
+            `${OrderbookService.logInfo} SELL order init | userId=${userId} | stock=${orderInfo.stockName} | qty=${orderInfo.quantity} | price=${orderInfo.price}`,
+          );
+          const existingBuyOrders = await this.orderBookRepository.getOrderList(
             userId,
             orderInfo,
-            remainingOrder?.id,
-            totalQuantity,
+          );
+          const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
+            await this.matchingLogicService.matchOrders({
+              initiatorId: userId,
+              orderInfo,
+              oppositeOrders: existingBuyOrders,
+              isSell: true,
+              manager,
+            });
+          await this.applyOrderBookUpdates(
+            ordersToRemove,
+            ordersToUpdate,
             manager,
           );
-        }
-        this.logger.info(
-          `${OrderbookService.logInfo} SELL order complete | userId=${userId} | stock=${orderInfo.stockName} | qty=${orderInfo.quantity} | price=${orderInfo.price} | remainingQty=${remainingQuantity}`,
-        );
-        return {
-          totalStockSold: totalQuantity,
-          fundsAdded: totalFunds,
-          trades,
-          remainingOrder,
-        };
-      },
-    );
+
+          const remainingOrder = await this.saveRemainingOrder(
+            userId,
+            orderInfo,
+            remainingQuantity,
+            manager,
+          );
+
+          await this.fundsProcessorService.processFundsForSell(
+            userId,
+            trades,
+            orderInfo.price,
+            manager,
+          );
+
+          const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
+          if (totalQuantity > 0) {
+            await this.matchingLogicService.recordOrderHistory(
+              userId,
+              orderInfo,
+              remainingOrder?.id,
+              totalQuantity,
+              manager,
+            );
+          }
+          this.logger.info(
+            `${OrderbookService.logInfo} SELL order complete | userId=${userId} | stock=${orderInfo.stockName} | qty=${orderInfo.quantity} | price=${orderInfo.price} | remainingQty=${remainingQuantity}`,
+          );
+          return {
+            totalStockSold: totalQuantity,
+            fundsAdded: totalFunds,
+            trades,
+            remainingOrder,
+          };
+        },
+      );
+    } catch (error) {
+      this.logger.warn(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        `${OrderbookService.logInfo} ${error.message} for userId: ${userId}`,
+      );
+      throw error;
+    }
   }
 
   async buyOrder(
     userId: string,
     orderInfo: CreateBuyOrderReqDto,
   ): Promise<IBuyTrade> {
-    return this.transactionManagerService.runInTransaction<IBuyTrade>(
-      async (manager) => {
-        this.logger.info(
-          `${OrderbookService.logInfo} BUY order init | userId=${userId} | stock=${orderInfo.stockName} | qty=${orderInfo.quantity} | price=${orderInfo.price}`,
-        );
-
-        if (
-          !(await this.walletsService.validateBalance(
-            userId,
-            orderInfo.price * orderInfo.quantity,
-          ))
-        ) {
-          this.logger.warn(
-            `${OrderbookService.logInfo} Insufficient balance for userId: ${userId} with payload: ${
-              orderInfo.price * orderInfo.quantity
-            }`,
+    try {
+      return this.transactionManagerService.runInTransaction<IBuyTrade>(
+        async (manager) => {
+          this.logger.info(
+            `${OrderbookService.logInfo} BUY order init | userId=${userId} | stock=${orderInfo.stockName} | qty=${orderInfo.quantity} | price=${orderInfo.price}`,
           );
-          throw new CustomError(errorMessages.INSUFFICIENT_BALANCE);
-        }
 
-        const existingSellOrders = await this.orderBookRepository.getOrderList(
-          userId,
-          orderInfo,
-        );
+          if (
+            !(await this.walletsService.validateBalance(
+              userId,
+              orderInfo.price * orderInfo.quantity,
+            ))
+          ) {
+            this.logger.warn(
+              `${OrderbookService.logInfo} Insufficient balance for userId: ${userId} with payload: ${
+                orderInfo.price * orderInfo.quantity
+              }`,
+            );
+            throw new CustomError(errorMessages.INSUFFICIENT_BALANCE);
+          }
 
-        const id: string = uuid();
-        const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
-          await this.matchingLogicService.matchOrders({
-            initiatorId: userId,
-            orderInfo,
-            oppositeOrders: existingSellOrders,
-            isSell: false,
+          const existingSellOrders =
+            await this.orderBookRepository.getOrderList(userId, orderInfo);
+
+          const id: string = uuid();
+          const { trades, ordersToRemove, ordersToUpdate, remainingQuantity } =
+            await this.matchingLogicService.matchOrders({
+              initiatorId: userId,
+              orderInfo,
+              oppositeOrders: existingSellOrders,
+              isSell: false,
+              manager,
+              orderId: id,
+            });
+
+          await this.applyOrderBookUpdates(
+            ordersToRemove,
+            ordersToUpdate,
             manager,
-            orderId: id,
-          });
+          );
 
-        await this.applyOrderBookUpdates(
-          ordersToRemove,
-          ordersToUpdate,
-          manager,
-        );
+          const remainingOrder = await this.saveRemainingOrder(
+            userId,
+            orderInfo,
+            remainingQuantity,
+            manager,
+            id,
+          );
 
-        const remainingOrder = await this.saveRemainingOrder(
-          userId,
-          orderInfo,
-          remainingQuantity,
-          manager,
-          id,
-        );
+          await this.fundsProcessorService.processFundsForBuy(
+            userId,
+            trades,
+            manager,
+          );
 
-        await this.fundsProcessorService.processFundsForBuy(
-          userId,
-          trades,
-          manager,
-        );
+          const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
 
-        const { totalQuantity, totalFunds } = this.summarizeTrades(trades);
-
-        this.logger.info(
-          `${OrderbookService.logInfo} BUY order complete | userId=${userId} | stock=${orderInfo.stockName} | qty=${orderInfo.quantity} | price=${orderInfo.price} | remainingQty=${remainingQuantity}`,
-        );
-        return {
-          totalStockBought: totalQuantity,
-          fundsSpent: totalFunds,
-          trades,
-          remainingOrder,
-        };
-      },
-    );
+          this.logger.info(
+            `${OrderbookService.logInfo} BUY order complete | userId=${userId} | stock=${orderInfo.stockName} | qty=${orderInfo.quantity} | price=${orderInfo.price} | remainingQty=${remainingQuantity}`,
+          );
+          return {
+            totalStockBought: totalQuantity,
+            fundsSpent: totalFunds,
+            trades,
+            remainingOrder,
+          };
+        },
+      );
+    } catch (error) {
+      this.logger.warn(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        `${OrderbookService.logInfo} ${error.message} for userId: ${userId}`,
+      );
+      throw error;
+    }
   }
-
   /* -------------------------------------------------------------------------- */
   /*                              PRIVATE HELPERS                               */
   /* -------------------------------------------------------------------------- */
