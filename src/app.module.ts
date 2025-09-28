@@ -7,6 +7,7 @@ import { OrderbookModule } from './orderbook/orderbook.module';
 import { validateEnv } from './core/config';
 import { SeedsModule } from './database/seeds/seeds.module';
 import { OrderHistoryModule } from './orderHistory/orderHistory.module';
+import { WalletModule } from './wallet/wallet.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { OrderHistoryModule } from './orderHistory/orderHistory.module';
     OrderbookModule,
     ...(process.env.NODE_ENV === 'development' ? [SeedsModule] : []),
     OrderHistoryModule,
+    WalletModule,
   ],
 })
 export class AppModule {}

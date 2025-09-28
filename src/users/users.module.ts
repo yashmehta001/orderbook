@@ -10,6 +10,7 @@ import { TokenService, JwtService } from '../utils/token/services';
 import { JwtModule } from '@nestjs/jwt';
 import { LoggerModule } from '../utils/logger/logger.module';
 import { OrderbookModule } from '../orderbook/orderbook.module';
+import { WalletModule } from '../wallet/wallet.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { OrderbookModule } from '../orderbook/orderbook.module';
     JwtModule,
     LoggerModule,
     forwardRef(() => OrderbookModule),
+    WalletModule,
   ],
   controllers: [UsersController],
   providers: [

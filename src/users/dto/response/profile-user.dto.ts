@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Transform } from 'class-transformer';
+import { UserEntity } from '../../../users/entities';
 
 export class UserProfileResDto {
   @Expose()
@@ -13,8 +14,7 @@ export class UserProfileResDto {
     example: 'John Doe',
   })
   @Transform(
-    ({ obj }: { obj: { firstName: string; lastName: string } }) =>
-      `${obj.firstName} ${obj.lastName}`,
+    ({ obj }: { obj: UserEntity }) => `${obj.firstName} ${obj.lastName}`,
   )
   fullName: string;
 
@@ -28,5 +28,6 @@ export class UserProfileResDto {
   @ApiProperty({
     example: 1000,
   })
+  @Transform(({ obj }: { obj: UserEntity }) => obj.wallet?.funds ?? 0)
   funds: number;
 }

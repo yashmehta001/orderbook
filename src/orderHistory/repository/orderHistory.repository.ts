@@ -1,28 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, Repository } from 'typeorm';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { EntityManager, DataSource } from 'typeorm';
 import { OrderHistoryEntity } from '../entities/orderHistory.entity';
 import { CreateOrderHistoryDto } from '../dto/request/createHistory.dto';
+import { BaseRepository } from '../../core/entity/BaseRepository';
+import { IOrderHistoryRepository } from '../interfaces';
 
-export interface IOrderHistoryRepository {
-  save(
-    orderInfo: Partial<CreateOrderHistoryDto>,
-    manager?: EntityManager,
-  ): Promise<OrderHistoryEntity>;
-
-  getByUserId(userId: string): Promise<OrderHistoryEntity[]>;
-}
 @Injectable()
-export class OrderHistoryRepository {
-  constructor(
-    @InjectRepository(OrderHistoryEntity)
-    private readonly orderHistoryEntity: Repository<OrderHistoryEntity>,
-  ) {}
+export class OrderHistoryRepository
+  extends BaseRepository<OrderHistoryEntity>
+  implements IOrderHistoryRepository
+{
+  protected entity = OrderHistoryEntity;
 
-  private getRepo(manager?: EntityManager) {
-    return manager
-      ? manager.getRepository(OrderHistoryEntity)
-      : this.orderHistoryEntity;
+  constructor(@InjectDataSource() dataSource: DataSource) {
+    super(dataSource);
   }
 
   async save(
@@ -42,7 +34,7 @@ export class OrderHistoryRepository {
   }
 
   async getByUserId(userId: string): Promise<OrderHistoryEntity[]> {
-    const history = this.orderHistoryEntity
+    return this.getRepo()
       .createQueryBuilder('orderHistory')
       .leftJoin('orderHistory.user', 'user')
       .where('orderHistory.user_id = :userId', { userId })
@@ -50,7 +42,7 @@ export class OrderHistoryRepository {
       .addGroupBy('orderHistory.id')
       .addGroupBy('user.id')
       .orderBy('orderHistory.transactionId', 'DESC')
-      .addOrderBy('orderHistory.auditInfo.createdAt', 'ASC');
-    return history.getMany();
+      .addOrderBy('orderHistory.auditInfo.createdAt', 'ASC')
+      .getMany();
   }
 }

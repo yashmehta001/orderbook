@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Expose } from 'class-transformer';
+import { Expose, Transform } from 'class-transformer';
+import { UserEntity } from '../../../users/entities/user.entity';
 
 export class UserResDto {
   @Expose()
@@ -30,5 +31,6 @@ export class UserResDto {
   @ApiProperty({
     example: 1000,
   })
-  funds: number;
+  @Transform(({ obj }: { obj: UserEntity }) => obj.wallet?.funds ?? 0)
+  funds?: number;
 }
