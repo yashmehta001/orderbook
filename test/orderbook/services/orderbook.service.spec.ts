@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrderbookService } from '../../../src/orderbook/services/orderbook.service';
 import { OrderHistoryService } from '../../../src/orderHistory/services/orderHistory.service';
@@ -20,7 +19,6 @@ import { DataSource } from 'typeorm';
 import {
   mockCreateOrderRequest,
   mockOrderBookBuyData,
-  mockOrderBookBuyDataExcessOrder,
   mockOrderBookBuyDataRemainingOrder,
   mockRawOrders,
   mockTrade,
@@ -35,13 +33,15 @@ describe('OrderbookService', () => {
   let orderbookService: OrderbookService;
   let orderBookRepository: jest.Mocked<IOrderBookRepository>;
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let userService: jest.Mocked<UserService>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let orderHistoryService: jest.Mocked<OrderHistoryService>;
   let matchingLogicService: jest.Mocked<IMatchingLogicService>;
   let fundsProcessorService: jest.Mocked<IFundsProcessorService>;
   let walletService: jest.Mocked<WalletService>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let transactionManagerService: jest.Mocked<TransactionManagerService>;
-  let mockDataSource: jest.Mocked<DataSource>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -116,9 +116,6 @@ describe('OrderbookService', () => {
     transactionManagerService = module.get<TransactionManagerService>(
       TransactionManagerService,
     ) as jest.Mocked<TransactionManagerService>;
-    mockDataSource = module.get<DataSource>(
-      DataSource,
-    ) as jest.Mocked<DataSource>;
   });
 
   it('OrderbookService should be defined', () => {
