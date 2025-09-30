@@ -5,10 +5,12 @@ import {
   Entity,
   Index,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   Unique,
 } from 'typeorm';
 import { OrderHistoryEntity } from '../../orderHistory/entities/orderHistory.entity';
+import { WalletEntity } from '../../wallet/entities/wallet.entity';
 
 @Entity({
   name: 'users',
@@ -37,11 +39,6 @@ export class UserEntity {
   @Column()
   password: string;
 
-  @Column({
-    default: 0,
-  })
-  funds: number;
-
   @OneToMany(() => OrderBookEntity, (order) => order.user, { cascade: true })
   orders?: OrderBookEntity[];
 
@@ -49,6 +46,9 @@ export class UserEntity {
     cascade: true,
   })
   orderHistory?: OrderHistoryEntity[];
+
+  @OneToOne(() => WalletEntity, (wallet) => wallet.user, { cascade: true })
+  wallet?: WalletEntity;
 
   @Column(() => AuditInfo, { prefix: false })
   auditInfo: AuditInfo;

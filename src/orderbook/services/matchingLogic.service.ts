@@ -1,0 +1,187 @@
+import { Injectable } from '@nestjs/common';
+import { CreateBuyOrderReqDto, CreateSellOrderReqDto, ITrade } from '../dto';
+import { OrderBookEntity } from '../entities/orderbook.entity';
+import { EntityManager } from 'typeorm';
+import { v4 as uuid } from 'uuid';
+import { IMatchingLogicService } from '../interfaces';
+import { LoggerService } from '../../utils/logger/WinstonLogger';
+import { OrderHistoryService } from '../../orderHistory/services/orderHistory.service';
+
+@Injectable()
+export class MatchingLogicService implements IMatchingLogicService {
+  constructor(
+    private readonly orderHistoryService: OrderHistoryService,
+    private readonly logger: LoggerService,
+  ) {}
+
+  async matchOrders(params: {
+    initiatorId: string;
+    orderInfo: CreateBuyOrderReqDto | CreateSellOrderReqDto;
+    oppositeOrders: OrderBookEntity[];
+    isSell: boolean;
+    manager: EntityManager;
+    orderId?: string;
+  }): Promise<{
+    trades: ITrade[];
+    ordersToRemove: string[];
+    ordersToUpdate: { id: string; quantity: number }[];
+    remainingQuantity: number;
+  }> {
+    this.logger.info(
+      `Matching orders for initiatorId: ${params.initiatorId}, orderInfo: ${JSON.stringify(params.orderInfo)}, isSell: ${params.isSell}`,
+    );
+    const { initiatorId, orderInfo, oppositeOrders, isSell, orderId, manager } =
+      params;
+
+    let remainingQuantity = orderInfo.quantity;
+    const trades: ITrade[] = [];
+    const ordersToRemove: string[] = [];
+    const ordersToUpdate: { id: string; quantity: number }[] = [];
+
+    for (const opposite of oppositeOrders) {
+      if (remainingQuantity <= 0) break;
+      const availableQty = opposite.quantity;
+      const tradeQty = Math.min(remainingQuantity, availableQty);
+
+      const trade: ITrade = isSell
+        ? this.buildSellTrade(opposite, initiatorId, orderInfo, tradeQty)
+        : this.buildBuyTrade(
+            opposite,
+            initiatorId,
+            orderInfo,
+            tradeQty,
+            orderId!,
+          );
+
+      trades.push(trade);
+
+      if (trade.quantity > 0) {
+        await this.recordTradeHistory(
+          isSell,
+          initiatorId,
+          opposite,
+          orderInfo,
+          tradeQty,
+          manager,
+          orderId,
+        );
+      }
+
+      if (availableQty <= remainingQuantity) {
+        ordersToRemove.push(opposite.id);
+      } else {
+        ordersToUpdate.push({
+          id: opposite.id,
+          quantity: availableQty - tradeQty,
+        });
+      }
+
+      remainingQuantity -= tradeQty;
+    }
+    this.logger.info(
+      `Order matching process completed. Trades: ${JSON.stringify(
+        trades,
+      )}, Orders to Remove: ${JSON.stringify(
+        ordersToRemove,
+      )}, Orders to Update: ${JSON.stringify(
+        ordersToUpdate,
+      )}, Remaining Quantity: ${remainingQuantity}`,
+    );
+    return { trades, ordersToRemove, ordersToUpdate, remainingQuantity };
+  }
+
+  async recordOrderHistory(
+    userId: string,
+    orderInfo: CreateSellOrderReqDto,
+    orderId: string | undefined,
+    totalQuantity: number,
+    manager?: EntityManager,
+  ): Promise<void> {
+    await this.orderHistoryService.createOrderHistory(
+      {
+        id: (orderId as string) ?? uuid(),
+        ...orderInfo,
+        user: { id: userId },
+        quantity: totalQuantity,
+      },
+      manager,
+    );
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /*                              PRIVATE HELPERS                               */
+  /* -------------------------------------------------------------------------- */
+
+  private buildSellTrade(
+    opposite: OrderBookEntity,
+    sellerId: string,
+    orderInfo: CreateSellOrderReqDto,
+    qty: number,
+  ): ITrade {
+    return {
+      buyOrderId: opposite.id,
+      buyerId: opposite?.user?.id,
+      sellUserId: sellerId,
+      stockName: orderInfo.stockName,
+      price: orderInfo.price,
+      quantity: qty,
+    };
+  }
+
+  private buildBuyTrade(
+    opposite: OrderBookEntity,
+    buyerId: string,
+    orderInfo: CreateBuyOrderReqDto,
+    qty: number,
+    orderId: string,
+  ): ITrade {
+    return {
+      buyerId,
+      sellOrderId: opposite.id,
+      sellerId: opposite?.user?.id,
+      stockName: orderInfo.stockName,
+      price: opposite.price,
+      quantity: qty,
+      id: orderId,
+    };
+  }
+
+  private async recordTradeHistory(
+    isSell: boolean,
+    initiatorId: string,
+    opposite: OrderBookEntity,
+    orderInfo: CreateBuyOrderReqDto | CreateSellOrderReqDto,
+    quantity: number,
+    manager: EntityManager,
+    orderId?: string,
+  ): Promise<void> {
+    if (isSell) {
+      await this.orderHistoryService.createOrderHistory(
+        {
+          ...opposite,
+          price: orderInfo.price,
+          quantity,
+        },
+        manager,
+      );
+    } else {
+      await this.orderHistoryService.createOrderHistory(
+        {
+          ...opposite,
+          quantity,
+        },
+        manager,
+      );
+      await this.orderHistoryService.createOrderHistory(
+        {
+          ...orderInfo,
+          user: { id: initiatorId },
+          id: (orderId as string) ?? uuid(),
+          quantity,
+          price: opposite.price,
+        },
+        manager,
+      );
+    }
+  }
+}

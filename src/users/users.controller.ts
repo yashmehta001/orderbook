@@ -2,14 +2,11 @@ import {
   Body,
   Controller,
   Get,
-  Headers,
   HttpCode,
   HttpStatus,
   Post,
-  Put,
 } from '@nestjs/common';
 import {
-  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
@@ -20,7 +17,6 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import {
-  ManageFundsReqDto,
   UserCreateReqDto,
   UserLoginReqDto,
   UserLoginResDto,
@@ -32,12 +28,13 @@ import { UserService } from './services/users.service';
 import { AuthType } from '../utils/token/types';
 import { Auth } from '../utils/authentication/decorator';
 import { AuthUser } from '../utils/decorators';
-import { errorMessages, successMessages } from '../core/config';
+import { successMessages } from '../core/config';
 import { UserEntity } from './entities';
+import { IUsersController } from './interfaces/users.controller.interface';
 
 @ApiTags('User')
 @Controller('user')
-export class UsersController {
+export class UsersController implements IUsersController {
   constructor(private readonly userService: UserService) {}
 
   @Auth(AuthType.None)
@@ -96,28 +93,5 @@ export class UsersController {
     @AuthUser() user: UserProfileReqDto,
   ): Promise<UserEntity | null> {
     return this.userService.profile(user.id);
-  }
-
-  @Serialize(UserProfileResDto, successMessages.FUND_UPDATED)
-  @ApiResponse({
-    description: 'for more information please check ManageFundsReqDto schema',
-  })
-  @ApiOkResponse({
-    description: 'Funds are updated successfully',
-    type: UserProfileResDto,
-  })
-  @ApiBadRequestResponse({
-    description: errorMessages.INSUFFICIENT_BALANCE,
-  })
-  @ApiNotFoundResponse({
-    description: errorMessages.USER_NOT_FOUND,
-  })
-  @ApiBearerAuth()
-  @Put('/update-funds')
-  async updateFunds(
-    @AuthUser() user: UserProfileReqDto,
-    @Body() body: ManageFundsReqDto,
-  ): Promise<UserEntity | null> {
-    return this.userService.updateFunds(user.id, body.funds);
   }
 }
